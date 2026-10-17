@@ -9,6 +9,11 @@
 enum BobberState { BOBBER_READY, BOBBER_WAITING, BOBBER_BITE, BOBBER_CAUGHT };
 static BobberState bobberState = BOBBER_READY;
 static uint32_t bobberCastAt = 0;
+// Whole ounces avoid rounding when displaying pounds and ounces.
+// Session-only: these values reset when the game restarts.
+static uint16_t bobberCatchOz = 0;
+static uint16_t bobberBestOz = 0;
+static bool bobberNewBest = false;
 static const int BOBBER_BUTTON_X = 143;
 static const int BOBBER_BUTTON_Y = 376;
 static const int BOBBER_BUTTON_W = 180;
@@ -137,9 +142,18 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
   } else if (bobberState == BOBBER_CAUGHT) {
     canvas->setCursor(113, 321);
     canvas->print("You caught a flounder!");
+    char weight[40];
+    snprintf(weight, sizeof(weight), "%u lb %u oz", bobberCatchOz / 16,
+             bobberCatchOz % 16);
+    canvas->setTextSize(2);
+    canvas->setCursor(233 - strlen(weight) * 6, 343);
+    canvas->print(weight);
+    snprintf(weight, sizeof(weight), "%s: %u lb %u oz",
+             bobberNewBest ? "New session best" : "Session best",
+             bobberBestOz / 16, bobberBestOz % 16);
     canvas->setTextSize(1);
-    canvas->setCursor(170, 347);
-    canvas->print("A little Chincoteague.");
+    canvas->setCursor(233 - strlen(weight) * 3, 365);
+    canvas->print(weight);
   } else {
     canvas->setCursor(131, 316);
     canvas->print("A little fishing.");
@@ -181,7 +195,13 @@ static void updateBobberTouch(Arduino_Canvas *canvas, bool pressed,
   } else if (wasDown) {
     if (armed && pressedState == bobberState) {
       if (bobberState == BOBBER_WAITING) bobberState = BOBBER_READY;
-      else if (bobberState == BOBBER_BITE) bobberState = BOBBER_CAUGHT;
+      else if (bobberState == BOBBER_BITE) {
+        // Roll only on a successful hook, never on redraw or a cancelled cast.
+        bobberCatchOz = (uint16_t)random(8, 129);
+        bobberNewBest = bobberCatchOz > bobberBestOz;
+        if (bobberNewBest) bobberBestOz = bobberCatchOz;
+        bobberState = BOBBER_CAUGHT;
+      }
       else {
         bobberState = BOBBER_WAITING;
         bobberCastAt = millis();

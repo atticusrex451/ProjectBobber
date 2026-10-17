@@ -32,7 +32,17 @@ Implemented: original welcome screen; CAST; three-second wait; persistent bite
 prompt; HOOK; flounder illustration and catch message; repeat casting. BACK
 cancels while waiting. Button actions occur on release; dragging off cancels.
 A press spanning a state change cannot activate the newly displayed action.
-No weights, catch journal, persistent fishing records, upgrades, or locations yet.
+Fish weights and a session personal best are now implemented: each successful
+hook assigns 8–128 whole ounces, displayed as pounds and ounces. Only a strictly
+larger catch earns “New session best”; ties retain the record. Both weight and
+record reset on restart; nothing is persisted yet. No catch journal, persistent
+fishing records, upgrades, or locations yet.
+
+Cloud validation for the weight milestone: desktop build passed; the Bobber-specific
+headless test exercises 1,000 catches, record increases/smaller catches/ties,
+redraw stability, cancelled casts, dragging off, and presses spanning a state
+change. This drives the real Bobber header, not upstream --shot. Visual layout
+and the new interaction still need Adam’s scale-1 laptop check.
 
 Adam built and ran the original emulator in Ubuntu/WSL2, selected Kanto and
 Charmander, then built and manually verified each Bobber milestone, including
@@ -83,5 +93,10 @@ by GitHub and should not be committed just to move development between devices.
 
 ## Next small gameplay milestone
 
-Fish weights and a session personal-best record, followed by persistent saving
-as a separate milestone. First complete and verify the cloud transition.
+First have Adam test weights and the session best on the laptop at --scale 1.
+Then add persistent saving as a separate milestone, after his review.
+Visual direction agreed in chat: original pixel art, coastal colors and a calm
+mood, inspired by Cast n’ Chill without copying its artwork.
+Laptop WSL/Ubuntu dependencies, dev-fishing checkout and scale-1 emulator launch
+were installed and confirmed working by Adam. This chat is accessible from both
+desktop and laptop. Cloud configuration publication remains unconfirmed.
