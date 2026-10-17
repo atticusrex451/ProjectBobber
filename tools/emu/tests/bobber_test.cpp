@@ -13,7 +13,12 @@ int main() {
     updateBobberTouch(&canvas, true, 233, 400);
     updateBobberTouch(&canvas, false, 233, 400);
   };
+  nvs().clear();
+  loadBobberRecord();
   assert(bobberBestOz == 0);
+  // The emulator shim ignores namespaces: use a unique Bobber key, too.
+  Preferences prefs;
+  prefs.putUInt("upstreamSentinel", 42);
   bool sawSmaller = false, sawLarger = false, sawTie = false;
   for (int i = 0; i < 1000; ++i) {
     const auto previousBest = bobberBestOz;
@@ -51,5 +56,36 @@ int main() {
   updateBobberTouch(&canvas, true, 0, 0);
   updateBobberTouch(&canvas, false, 0, 0);
   assert(bobberState == BOBBER_BITE && bobberBestOz == best && g_seed == seed);
+  assert(prefs.getUInt("upstreamSentinel") == 42);
+  const auto savedBest = bobberBestOz;
+  loadBobberRecord(); // simulate reinitializing gameplay over retained NVS
+  assert(bobberBestOz == savedBest && bobberCatchOz == 0 && !bobberNewBest);
+  nvsFailWritesAfter(0);
+  // Already saved records must not attempt another write.
+  saveBobberRecord();
+  assert(nvsWriteBudget() == 0);
+  nvsResumeWrites();
+  prefs.putUShort("bobberBestOz", 999);
+  loadBobberRecord();
+  assert(bobberBestOz == 0);
+  prefs.putUShort("bobberBestOz", 7);
+  loadBobberRecord();
+  assert(bobberBestOz == 0);
+  // Failed saves retain the in-memory record, and retry without replacing it.
+  bobberBestOz = 100;
+  nvsFailWritesAfter(0);
+  saveBobberRecord();
+  assert(bobberBestOz == 100 && bobberSavedBestOz == 0);
+  nvsResumeWrites();
+  saveBobberRecord();
+  loadBobberRecord();
+  assert(bobberBestOz == 100 && bobberSavedBestOz == 100);
+  assert(prefs.getUInt("upstreamSentinel") == 42);
+  // No writes for a smaller catch or a tie once the record is saved.
+  nvsFailWritesAfter(1);
+  saveBobberRecord();
+  assert(nvsWriteBudget() == 1);
+  nvsResumeWrites();
+  puts("Bobber persistence: reload, invalid data, failed writes/retry, upstream isolation passed");
   puts("Bobber: 1000 catches, records/ties, redraws, cancel and touch guards passed");
 }

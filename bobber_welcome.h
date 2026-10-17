@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Arduino_GFX_Library.h"
+#include <Preferences.h>
 
 // First Bobber milestone: an original, asset-free screen for the round display.
 // Set to 0 to run the upstream game again while fishing is under development.
@@ -10,10 +11,32 @@ enum BobberState { BOBBER_READY, BOBBER_WAITING, BOBBER_BITE, BOBBER_CAUGHT };
 static BobberState bobberState = BOBBER_READY;
 static uint32_t bobberCastAt = 0;
 // Whole ounces avoid rounding when displaying pounds and ounces.
-// Session-only: these values reset when the game restarts.
+// The catch is session-only; the personal best is loaded from Bobber storage.
 static uint16_t bobberCatchOz = 0;
 static uint16_t bobberBestOz = 0;
 static bool bobberNewBest = false;
+static uint16_t bobberSavedBestOz = 0;
+
+static void loadBobberRecord() {
+  bobberBestOz = bobberSavedBestOz = 0;
+  bobberCatchOz = 0;
+  bobberNewBest = false;
+  Preferences prefs;
+  if (!prefs.begin("bobber", true)) return;
+  const uint16_t saved = prefs.getUShort("bobberBestOz", 0);
+  prefs.end();
+  // Ignore invalid/obsolete data without changing any other game's save.
+  if (saved >= 8 && saved <= 128) bobberBestOz = bobberSavedBestOz = saved;
+}
+
+static void saveBobberRecord() {
+  if (bobberBestOz <= bobberSavedBestOz) return;
+  Preferences prefs;
+  if (!prefs.begin("bobber", false)) return;
+  if (prefs.putUShort("bobberBestOz", bobberBestOz) == sizeof(uint16_t))
+    bobberSavedBestOz = bobberBestOz;
+  prefs.end();
+}
 static const int BOBBER_BUTTON_X = 143;
 static const int BOBBER_BUTTON_Y = 376;
 static const int BOBBER_BUTTON_W = 180;
@@ -149,11 +172,15 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
     canvas->setCursor(233 - strlen(weight) * 6, 343);
     canvas->print(weight);
     snprintf(weight, sizeof(weight), "%s: %u lb %u oz",
-             bobberNewBest ? "New session best" : "Session best",
+             bobberNewBest ? "New personal best" : "Personal best",
              bobberBestOz / 16, bobberBestOz % 16);
     canvas->setTextSize(1);
     canvas->setCursor(233 - strlen(weight) * 3, 365);
     canvas->print(weight);
+    if (bobberBestOz > bobberSavedBestOz) {
+      canvas->setCursor(155, 301);
+      canvas->print("Record not saved; try again");
+    }
   } else {
     canvas->setCursor(131, 316);
     canvas->print("A little fishing.");
@@ -200,6 +227,8 @@ static void updateBobberTouch(Arduino_Canvas *canvas, bool pressed,
         bobberCatchOz = (uint16_t)random(8, 129);
         bobberNewBest = bobberCatchOz > bobberBestOz;
         if (bobberNewBest) bobberBestOz = bobberCatchOz;
+        // If storage failed, retry the outstanding record on the next catch.
+        saveBobberRecord();
         bobberState = BOBBER_CAUGHT;
       }
       else {

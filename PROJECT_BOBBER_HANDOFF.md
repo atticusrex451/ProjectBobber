@@ -32,17 +32,28 @@ Implemented: original welcome screen; CAST; three-second wait; persistent bite
 prompt; HOOK; flounder illustration and catch message; repeat casting. BACK
 cancels while waiting. Button actions occur on release; dragging off cancels.
 A press spanning a state change cannot activate the newly displayed action.
-Fish weights and a session personal best are now implemented: each successful
+Fish weights and a persistent personal best are implemented: each successful
 hook assigns 8–128 whole ounces, displayed as pounds and ounces. Only a strictly
-larger catch earns “New session best”; ties retain the record. Both weight and
-record reset on restart; nothing is persisted yet. No catch journal, persistent
-fishing records, upgrades, or locations yet.
+larger catch earns “New personal best”; ties retain the record. The current catch
+is session-only. The best loads at Bobber startup from Preferences namespace
+`bobber`, key `bobberBestOz`; it writes only when the record improves, or retries
+an outstanding failed write on the next successful catch. Invalid saved weights
+outside 8–128 ounces are ignored. Failed saves show a short warning.
+No catch journal, upgrades, or locations yet.
 
-Cloud validation for the weight milestone: desktop build passed; the Bobber-specific
-headless test exercises 1,000 catches, record increases/smaller catches/ties,
-redraw stability, cancelled casts, dragging off, and presses spanning a state
-change. This drives the real Bobber header, not upstream --shot. Visual layout
-and the new interaction still need Adam’s scale-1 laptop check.
+Adam verified weights and the session-record comparison on the laptop at scale 1.
+Persistent saving still needs his close/reopen test. Close the emulator with Esc
+or the window close button: its existing NVS shim writes `tamapoke.nvs` in the
+working directory on normal exit (or the explicit --save path). Force-killing it
+can lose changes; local save files do not sync between laptop, desktop and cloud.
+On hardware Preferences writes to flash; hardware behavior remains untested.
+
+Cloud validation: desktop build passed; Bobber-specific tests cover 1,000 catches,
+record increases/smaller catches/ties, redraw stability, cancellation/touch guards,
+record reload over retained NVS, invalid values, failed writes/retry, and keeping
+unrelated upstream data intact. These exercise the real Bobber header and emulator
+Preferences shim, not upstream --shot. Actual disk restart and visual layout need
+Adam’s scale-1 laptop check.
 
 Adam built and ran the original emulator in Ubuntu/WSL2, selected Kanto and
 Charmander, then built and manually verified each Bobber milestone, including
@@ -93,8 +104,9 @@ by GitHub and should not be committed just to move development between devices.
 
 ## Next small gameplay milestone
 
-First have Adam test weights and the session best on the laptop at --scale 1.
-Then add persistent saving as a separate milestone, after his review.
+First have Adam verify the personal best survives closing and reopening the
+laptop emulator at --scale 1, and survives a smaller subsequent catch.
+Choose the next small milestone together after his review.
 Visual direction agreed in chat: original pixel art, coastal colors and a calm
 mood, inspired by Cast n’ Chill without copying its artwork.
 Laptop WSL/Ubuntu dependencies, dev-fishing checkout and scale-1 emulator launch

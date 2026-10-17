@@ -935,8 +935,9 @@ void setup() {
   pinMode(TP_INT, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(TP_INT), touchIsr, FALLING);
 
-  // Bobber uses the shared display and touch hardware, without pet/save logic.
+  // Bobber uses shared display/touch hardware and its own personal-best save.
   if (BOBBER_WELCOME) {
+    loadBobberRecord();
     renderBobberWelcome(gfx);
     return;
   }
