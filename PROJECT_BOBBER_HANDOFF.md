@@ -11,6 +11,13 @@ testable milestone at a time, and let Adam participate. Keep the tone friendly.
 Do not rewrite the whole game or make major changes without checking first.
 No daily care penalties. Use original fishing artwork and respect upstream licenses.
 
+## Design reference
+
+Read [PROJECT_BOBBER_DESIGN.md](PROJECT_BOBBER_DESIGN.md) for the intended play
+loop, screens, fights, quests, collection rules and complete proposed rosters.
+It distinguishes intended features from implemented behavior and open proposals.
+Captain Thurl's Grotto honors Dad's best friend and fishing buddy, Thurl.
+
 ## Repository and hardware
 
 - Repository: https://github.com/atticusrex451/ProjectBobber
@@ -109,9 +116,11 @@ by GitHub and should not be committed just to move development between devices.
 The welcome screen now shows “Personal best” in pounds and ounces above CAST,
 or “Your first catch awaits.” when no record exists. The original welcome
 tagline remains. Adam confirmed it appears; spacing is deferred to final polish.
-Have Adam verify the new session counter at --scale 1: catch a few fish, cancel
-a cast, and restart. The count should reset while the personal best remains.
-Choose the next small milestone together after his review.
+Adam confirmed the session counter works; its layout is also deferred to polish.
+We paused coding to agree on the larger design. Two main areas (Chincoteague Bay
+and Blue Mountain Lake) plus Captain Thurl's Grotto are documented in the design
+reference. Choose the next manageable implementation step together; the planned
+screens, fights, shops, quests and other species are not implemented yet.
 Visual direction agreed in chat: original pixel art, coastal colors and a calm
 mood, inspired by Cast n’ Chill without copying its artwork.
 Laptop WSL/Ubuntu dependencies, dev-fishing checkout and scale-1 emulator launch
