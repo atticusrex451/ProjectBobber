@@ -13,6 +13,7 @@ static uint32_t bobberCastAt = 0;
 // Whole ounces avoid rounding when displaying pounds and ounces.
 // The catch is session-only; the personal best is loaded from Bobber storage.
 static uint16_t bobberCatchOz = 0;
+static uint32_t bobberSessionCatches = 0;
 static uint16_t bobberBestOz = 0;
 static bool bobberNewBest = false;
 static uint16_t bobberSavedBestOz = 0;
@@ -20,6 +21,7 @@ static uint16_t bobberSavedBestOz = 0;
 static void loadBobberRecord() {
   bobberBestOz = bobberSavedBestOz = 0;
   bobberCatchOz = 0;
+  bobberSessionCatches = 0;
   bobberNewBest = false;
   Preferences prefs;
   if (!prefs.begin("bobber", true)) return;
@@ -118,6 +120,12 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
 
   canvas->fillScreen(navy);
   canvas->setTextColor(cream);
+  char catches[40];
+  snprintf(catches, sizeof(catches), "Fish caught: %lu",
+           (unsigned long)bobberSessionCatches);
+  canvas->setTextSize(1);
+  canvas->setCursor(233 - strlen(catches) * 3, 54);
+  canvas->print(catches);
   canvas->setTextSize(2);
   canvas->setCursor(191, 74);
   canvas->print("PROJECT");
@@ -234,6 +242,7 @@ static void updateBobberTouch(Arduino_Canvas *canvas, bool pressed,
       if (bobberState == BOBBER_WAITING) bobberState = BOBBER_READY;
       else if (bobberState == BOBBER_BITE) {
         // Roll only on a successful hook, never on redraw or a cancelled cast.
+        if (bobberSessionCatches < UINT32_MAX) ++bobberSessionCatches;
         bobberCatchOz = (uint16_t)random(8, 129);
         bobberNewBest = bobberCatchOz > bobberBestOz;
         if (bobberNewBest) bobberBestOz = bobberCatchOz;

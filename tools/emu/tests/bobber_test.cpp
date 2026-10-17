@@ -16,6 +16,7 @@ int main() {
   nvs().clear();
   loadBobberRecord();
   assert(bobberBestOz == 0);
+  assert(bobberSessionCatches == 0);
   // The emulator shim ignores namespaces: use a unique Bobber key, too.
   Preferences prefs;
   prefs.putUInt("upstreamSentinel", 42);
@@ -23,6 +24,7 @@ int main() {
   for (int i = 0; i < 1000; ++i) {
     const auto previousBest = bobberBestOz;
     tap();
+    assert(bobberSessionCatches == (uint32_t)i);
     assert(bobberState == BOBBER_WAITING);
     updateBobberFishing(&canvas, bobberCastAt + 2999);
     assert(bobberState == BOBBER_WAITING);
@@ -30,6 +32,7 @@ int main() {
     assert(bobberState == BOBBER_BITE);
     tap();
     assert(bobberState == BOBBER_CAUGHT);
+    assert(bobberSessionCatches == (uint32_t)i + 1);
     assert(bobberCatchOz >= 8 && bobberCatchOz <= 128);
     assert(bobberBestOz == (bobberCatchOz > previousBest ? bobberCatchOz : previousBest));
     assert(bobberNewBest == (bobberCatchOz > previousBest));
@@ -40,6 +43,7 @@ int main() {
     const auto seed = g_seed;
     renderBobberWelcome(&canvas);
     assert(bobberCatchOz == weight && g_seed == seed);
+    assert(bobberSessionCatches == (uint32_t)i + 1);
   }
   assert(sawSmaller && sawLarger && sawTie);
   const auto best = bobberBestOz;
@@ -56,10 +60,12 @@ int main() {
   updateBobberTouch(&canvas, true, 0, 0);
   updateBobberTouch(&canvas, false, 0, 0);
   assert(bobberState == BOBBER_BITE && bobberBestOz == best && g_seed == seed);
+  assert(bobberSessionCatches == 1000);
   assert(prefs.getUInt("upstreamSentinel") == 42);
   const auto savedBest = bobberBestOz;
   loadBobberRecord(); // simulate reinitializing gameplay over retained NVS
   assert(bobberBestOz == savedBest && bobberCatchOz == 0 && !bobberNewBest);
+  assert(bobberSessionCatches == 0);
   nvsFailWritesAfter(0);
   // Already saved records must not attempt another write.
   saveBobberRecord();

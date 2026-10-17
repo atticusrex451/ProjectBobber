@@ -39,6 +39,9 @@ is session-only. The best loads at Bobber startup from Preferences namespace
 `bobber`, key `bobberBestOz`; it writes only when the record improves, or retries
 an outstanding failed write on the next successful catch. Invalid saved weights
 outside 8–128 ounces are ignored. Failed saves show a short warning.
+A session catch counter now appears above the PROJECT title on each screen.
+It starts at zero, increments once per landed fish, and resets on restart.
+Casting, waiting, cancelling and redrawing do not increase it.
 No catch journal, upgrades, or locations yet.
 
 Adam verified weights and the session-record comparison on the laptop at scale 1.
@@ -105,7 +108,9 @@ by GitHub and should not be committed just to move development between devices.
 
 The welcome screen now shows “Personal best” in pounds and ounces above CAST,
 or “Your first catch awaits.” when no record exists. The original welcome
-tagline remains. Have Adam check this layout on the laptop at --scale 1.
+tagline remains. Adam confirmed it appears; spacing is deferred to final polish.
+Have Adam verify the new session counter at --scale 1: catch a few fish, cancel
+a cast, and restart. The count should reset while the personal best remains.
 Choose the next small milestone together after his review.
 Visual direction agreed in chat: original pixel art, coastal colors and a calm
 mood, inspired by Cast n’ Chill without copying its artwork.
