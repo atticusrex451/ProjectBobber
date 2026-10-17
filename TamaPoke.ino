@@ -38,6 +38,7 @@
 #include "nvsinfo.h"
 #include "i18n.h"
 #include "audio.h"
+#include "bobber_welcome.h"
 
 // Version del firmware. Subir este numero en cada release (y manifest.json para
 // el instalador web). Se muestra en la pantalla de ajustes y por serie al arrancar.
@@ -934,6 +935,12 @@ void setup() {
   pinMode(TP_INT, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(TP_INT), touchIsr, FALLING);
 
+  // Bobber uses the shared display and touch hardware, without pet/save logic.
+  if (BOBBER_WELCOME) {
+    renderBobberWelcome(gfx);
+    return;
+  }
+
   party.begin();
   bag.begin();
   pet.begin();
@@ -987,6 +994,18 @@ void ensureMon() {
 }
 
 void loop() {
+  if (BOBBER_WELCOME) {
+    static bool bobberTouchDown = false;
+    updateBobberFishing(gfx, millis());
+    if (gTouchIrq || bobberTouchDown) {
+      gTouchIrq = false;
+      int16_t x = 0, y = 0;
+      bobberTouchDown = touch.getPoint(&x, &y, 1) > 0;
+      updateBobberTouch(gfx, bobberTouchDown, x, y);
+    }
+    delay(20);
+    return;
+  }
   uint32_t now = millis();
   pet.update(now);
 
