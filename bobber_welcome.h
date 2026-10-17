@@ -19,6 +19,68 @@ static bool bobberButtonContains(int16_t x, int16_t y) {
          y >= BOBBER_BUTTON_Y && y < BOBBER_BUTTON_Y + BOBBER_BUTTON_H;
 }
 
+// Small original flatfish illustration, drawn with the same primitives as the UI.
+static void drawBobberFlounder(Arduino_Canvas *canvas) {
+  const uint16_t outline = 0x39E5;
+  const uint16_t sand = 0xC58E;
+  const uint16_t fin = 0x8BE9;
+  const uint16_t light = 0xE6B3;
+
+  // Fan-shaped tail sits behind the tapered body.
+  for (int y = -23; y <= 23; ++y)
+    canvas->drawLine(285, 230, 327, 230 + y, fin);
+  canvas->drawLine(285, 230, 327, 207, outline);
+  canvas->drawLine(285, 230, 327, 253, outline);
+  canvas->drawLine(327, 207, 327, 253, outline);
+  for (int y = -18; y <= 18; y += 9)
+    canvas->drawLine(294, 230, 323, 230 + y, sand);
+
+  // Broad dorsal and anal fins frame a flat, leaf-shaped body.
+  for (int x = -72; x <= 72; ++x) {
+    int halfHeight = 47 * (72 * 72 - x * x) / (72 * 72);
+    int centerY = 230 + x / 12;
+    canvas->drawFastVLine(225 + x, centerY - halfHeight,
+                          2 * halfHeight + 1, outline);
+    if (halfHeight > 3)
+      canvas->drawFastVLine(225 + x, centerY - halfHeight + 2,
+                            2 * halfHeight - 3, fin);
+    if (x % 6 == 0 && halfHeight > 10) {
+      canvas->drawLine(225 + x, centerY - halfHeight + 3,
+                       225 + x - 4, centerY - halfHeight + 13, light);
+      canvas->drawLine(225 + x, centerY + halfHeight - 3,
+                       225 + x - 4, centerY + halfHeight - 13, light);
+    }
+  }
+  for (int x = -70; x <= 70; ++x) {
+    int halfHeight = 34 * (70 * 70 - x * x) / (70 * 70);
+    int centerY = 230 + x / 12;
+    canvas->drawFastVLine(225 + x, centerY - halfHeight,
+                          2 * halfHeight + 1, sand);
+  }
+
+  // Fixed mottling: the fish does not change its markings on each redraw.
+  const int16_t spots[][3] = {
+    {211, 211, 4}, {236, 213, 5}, {258, 227, 4}, {232, 242, 5},
+    {206, 243, 3}, {275, 239, 3}, {195, 225, 3}, {249, 250, 2}
+  };
+  for (const auto &spot : spots) {
+    canvas->fillCircle(spot[0], spot[1], spot[2] + 1, light);
+    canvas->fillCircle(spot[0], spot[1], spot[2], fin);
+    canvas->fillCircle(spot[0], spot[1], 1, outline);
+  }
+  // Both eyes are visible on the upper side, with a small mouth and side fin.
+  canvas->fillCircle(179, 218, 6, outline);
+  canvas->fillCircle(190, 208, 6, outline);
+  canvas->fillCircle(179, 218, 4, light);
+  canvas->fillCircle(190, 208, 4, light);
+  canvas->fillCircle(178, 218, 2, outline);
+  canvas->fillCircle(189, 208, 2, outline);
+  canvas->drawLine(157, 225, 169, 229, outline);
+  canvas->drawLine(193, 232, 213, 237, outline);
+  canvas->drawLine(193, 232, 207, 244, fin);
+  canvas->drawLine(207, 244, 213, 237, outline);
+}
+
 static void renderBobberWelcome(Arduino_Canvas *canvas) {
   const uint16_t navy = 0x08E4;
   const uint16_t cream = 0xF7B9;
@@ -39,20 +101,7 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
   canvas->drawFastHLine(119, 283, 228, water);
   canvas->drawFastHLine(143, 294, 180, water);
   if (bobberState == BOBBER_CAUGHT) {
-    // Original little flatfish: oval body, tail and two eyes on its upper side.
-    for (int y = -37; y <= 37; ++y)
-      for (int x = -66; x <= 66; ++x)
-        if (x * x * 37 * 37 + y * y * 66 * 66 <= 66 * 66 * 37 * 37)
-          canvas->fillRect(233 + x, 235 + y, 1, 1, 0xAD67);
-    for (int y = -23; y <= 23; ++y)
-      canvas->drawLine(289, 235, 320, 235 + y, orange);
-    canvas->fillCircle(199, 220, 5, cream);
-    canvas->fillCircle(211, 208, 5, cream);
-    canvas->fillCircle(198, 220, 2, navy);
-    canvas->fillCircle(210, 208, 2, navy);
-    canvas->fillCircle(234, 225, 4, orange);
-    canvas->fillCircle(254, 246, 4, orange);
-    canvas->fillCircle(218, 251, 3, orange);
+    drawBobberFlounder(canvas);
   } else {
   canvas->fillRoundRect(225, 169, 16, 31, 7, lime);
   canvas->fillCircle(233, 238, 52, lime);
