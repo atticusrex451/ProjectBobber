@@ -186,6 +186,16 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
     canvas->print("A little fishing.");
     canvas->setCursor(125, 340);
     canvas->print("A lot of relaxing.");
+    char record[40];
+    if (bobberBestOz) {
+      snprintf(record, sizeof(record), "Personal best: %u lb %u oz",
+               bobberBestOz / 16, bobberBestOz % 16);
+    } else {
+      snprintf(record, sizeof(record), "Your first catch awaits.");
+    }
+    canvas->setTextSize(1);
+    canvas->setCursor(233 - strlen(record) * 3, 365);
+    canvas->print(record);
   }
   canvas->fillRoundRect(BOBBER_BUTTON_X, BOBBER_BUTTON_Y,
                         BOBBER_BUTTON_W, BOBBER_BUTTON_H, 16, lime);
