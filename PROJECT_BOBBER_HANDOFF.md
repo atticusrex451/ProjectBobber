@@ -192,3 +192,24 @@ Cloud build and existing Bobber/navigation/persistence checks pass. A circular
 render of caught flounder plus uncaught croaker was visually inspected directly,
 not via upstream --shot. Have Adam check the trophy wall at scale 1 with his
 existing records, then return to fishing. No gameplay or catch-odds change.
+
+## Spot and regional trophy pages (October 18)
+
+Spot joins flounder and croaker in the current Chincoteague catch pool. Each has
+an equal prototype chance. Spot's starting range is 2–16 oz, with silver/gold
+artwork and a dark shoulder spot; this is a gameplay tuning range. Its personal
+best uses `spotBestOz`, leaving both older record keys intact.
+
+Chincoteague's explicit roster drives catches and journal pages. Two entries per
+page: flounder/croaker on page 1 and Spot on page 2, with page numbers and previous/
+next arrows beside BACK. Arrows disable at boundaries; opening the journal starts
+on page 1. Uncaught portraits remain silhouettes. No travel or other regions
+are implemented; future regions must select their own roster and preserve all
+existing records. Adam agreed that each trophy wall should show only the current
+environment's fish.
+
+Validation: build and Bobber tests cover 1,000 mixed catches, independent bounds/
+records, all three records reloading, page navigation/end boundaries/cancelled
+drags, and existing animation/touch checks. Page 2 was rendered and inspected
+through Bobber directly, not upstream --shot. Have Adam test paging and catch
+Spot at scale 1, then close/reopen to confirm all records are retained.

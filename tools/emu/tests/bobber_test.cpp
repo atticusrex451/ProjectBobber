@@ -58,6 +58,24 @@ int main() {
   assert(bobberState == BOBBER_READY);
   updateBobberTouch(&canvas, false, 233, 324);
   assert(bobberState == BOBBER_JOURNAL);
+  auto pageTap = [&](int x) {
+    updateBobberTouch(&canvas, true, x, 398);
+    updateBobberTouch(&canvas, false, x, 398);
+  };
+  assert(bobberJournalPage == 0);
+  pageTap(115); // disabled previous
+  assert(bobberJournalPage == 0);
+  updateBobberTouch(&canvas, true, 349, 398);
+  updateBobberTouch(&canvas, true, 233, 400);
+  updateBobberTouch(&canvas, false, 233, 400);
+  assert(bobberJournalPage == 0 && bobberState == BOBBER_JOURNAL);
+  pageTap(349);
+  assert(bobberJournalPage == 1 && bobberState == BOBBER_JOURNAL);
+  updateBobberTouch(&canvas, false, 349, 398);
+  pageTap(349); // disabled next
+  assert(bobberJournalPage == 1);
+  pageTap(115);
+  assert(bobberJournalPage == 0);
   const auto journalFrame = canvas.fb;
   updateBobberFishing(&canvas, 10000);
   assert(canvas.fb == journalFrame && bobberState == BOBBER_JOURNAL);
@@ -118,10 +136,12 @@ int main() {
   assert(prefs.getUInt("upstreamSentinel") == 42);
   const auto savedBest = bobberBests[BOBBER_FLOUNDER];
   const auto savedCroaker = bobberBests[BOBBER_CROAKER];
+  const auto savedSpot = bobberBests[BOBBER_SPOT];
   loadBobberRecord(); // simulate reinitializing gameplay over retained NVS
   assert(bobberBests[bobberSpecies] == savedBest && bobberCatchOz == 0 && !bobberNewBest);
   assert(bobberState == BOBBER_TITLE);
   assert(bobberBests[BOBBER_CROAKER] == savedCroaker && savedCroaker > 0);
+  assert(bobberBests[BOBBER_SPOT] == savedSpot && savedSpot > 0);
   assert(bobberSessionCatches == 0);
   nvsFailWritesAfter(0);
   // Already saved records must not attempt another write.

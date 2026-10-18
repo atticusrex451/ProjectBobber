@@ -191,22 +191,24 @@ Boss anatomy, weight, bait recipe and final encounter remain open.
 ## Current milestone and next decisions
 
 Implemented prototype: separate static title screen with PLAY and a fishing
-screen headed CHINCOTEAGUE BAY, flounder and croaker, cast/wait/hook/repeat, weights,
+screen headed CHINCOTEAGUE BAY, flounder, croaker and Spot, cast/wait/hook/repeat, weights,
 persistent species-specific personal bests shown on ready/catch screens, and a session catch
-counter on fishing screens. The first journal is a two-entry trophy wall: colored miniature fish portraits
+counter on fishing screens. The journal is a regional trophy wall, two entries per page: colored miniature fish portraits
 for caught species, gray silhouettes for uncaught species, names and bests
 (or “Not caught yet”) underneath. Existing species records unlock the artwork.
-It is accessible from ready with BACK navigation. It does not
-yet include quests, lifetime totals, variants or additional species. Ready/waiting/bite now have an original
+It is accessible from ready with BACK navigation. Each environment must show only its own roster while retaining other areas’
+records. Chincoteague currently has two pages for three implemented species.
+Travel, quests, lifetime totals, variants and the remaining species are not
+implemented. Ready/waiting/bite now have an original
 pixel scene with a fisherman, boat, marshes, sky, water and small float. The
-title retains its large bobber; catch reveal retains its flounder. Gentle float
+title retains its large bobber; catch reveal shows the landed species. Gentle float
 bobbing and shifting water ripples animate the fishing scene. Bite markers stay
 steady with a lowered float; title and catch reveal remain static.
 Adam confirmed the counter works and the best survives restarting the laptop
 emulator at scale 1. The current screen layout is temporary.
 
-This document adds no gameplay implementation. Pause feature additions while
-agreeing on design. Next choose one small milestone together: screen/navigation
-structure, first animated fishing scene, or a minimal Chincoteague species system.
+This document describes the larger design; the implemented subset is listed
+above. Next have Adam verify Spot, regional paging, and persistence on the laptop,
+then choose the next small milestone together.
 Do not implement all these systems at once. Revisit recipe rules, fight tuning,
 economy, daily rotation and endgame rewards when their milestones arrive.
