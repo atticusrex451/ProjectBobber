@@ -112,6 +112,61 @@ static void drawBobberFlounder(Arduino_Canvas *canvas) {
   canvas->drawLine(207, 244, 213, 237, outline);
 }
 
+// Original static pixel scene; animation can build on this composition later.
+static void drawBobberBay(Arduino_Canvas *canvas) {
+  const uint16_t sky = 0x8D79, cloud = 0xDF5B, water = 0x3B50;
+  const uint16_t marsh = 0x5B88, reeds = 0x8C6A, dark = 0x1968;
+  const uint16_t wood = 0xA3E9, rim = 0xDE31, skin = 0xE5D1;
+  canvas->fillRect(73, 145, 320, 150, sky);
+  // Squared cloud clusters, a distant marsh bank and calm bay water.
+  canvas->fillRect(109, 162, 42, 6, cloud);
+  canvas->fillRect(121, 156, 24, 6, cloud);
+  canvas->fillRect(295, 171, 55, 6, cloud);
+  canvas->fillRect(307, 165, 25, 6, cloud);
+  canvas->fillRect(73, 202, 320, 93, water);
+  canvas->fillRect(73, 196, 93, 12, marsh);
+  canvas->fillRect(73, 190, 44, 6, marsh);
+  canvas->fillRect(326, 193, 67, 15, marsh);
+  for (int x = 79; x < 156; x += 12) {
+    canvas->fillRect(x, 190 - x % 3 * 3, 3, 12, reeds);
+  }
+  for (int x = 337; x < 390; x += 12)
+    canvas->fillRect(x, 187, 3, 12, reeds);
+  const int ripples[][3] = {
+    {94, 225, 31}, {281, 218, 34}, {340, 243, 28},
+    {104, 272, 41}, {259, 280, 38}, {192, 290, 24}
+  };
+  for (const auto &r : ripples) canvas->fillRect(r[0], r[1], r[2], 2, sky);
+  // Boat shadow, wooden hull, and pale gunwale.
+  canvas->fillRect(153, 264, 102, 4, dark);
+  canvas->fillRect(145, 240, 122, 8, wood);
+  canvas->fillRect(153, 248, 106, 8, wood);
+  canvas->fillRect(161, 256, 90, 4, dark);
+  canvas->fillRect(141, 237, 130, 4, rim);
+  // Seated fisherman facing right, wearing a brimmed hat.
+  canvas->fillRect(190, 211, 18, 22, dark);
+  canvas->fillRect(199, 228, 24, 7, dark);
+  canvas->fillRect(216, 231, 7, 6, dark);
+  canvas->fillRect(192, 196, 16, 15, skin);
+  canvas->fillRect(187, 192, 28, 5, rim);
+  canvas->fillRect(192, 185, 17, 8, wood);
+  canvas->fillRect(205, 201, 5, 5, skin);
+  canvas->fillRect(204, 215, 18, 5, skin);
+  canvas->fillRect(219, 211, 6, 9, skin);
+  // Rod and line lead the eye toward the little two-tone float.
+  canvas->drawLine(222, 214, 268, 178, dark);
+  canvas->drawLine(222, 215, 268, 179, dark);
+  canvas->drawLine(268, 178, 306, 244, cloud);
+  canvas->fillRect(303, 239, 7, 6, 0xBFE0);
+  canvas->fillRect(303, 245, 7, 5, 0xFB00);
+  canvas->fillRect(297, 252, 19, 2, sky);
+  if (bobberState == BOBBER_BITE) {
+    canvas->fillRect(305, 220, 3, 10, cloud);
+    canvas->drawLine(294, 232, 289, 226, cloud);
+    canvas->drawLine(317, 232, 322, 226, cloud);
+  }
+}
+
 static void renderBobberWelcome(Arduino_Canvas *canvas) {
   const uint16_t navy = 0x08E4;
   const uint16_t cream = 0xF7B9;
@@ -145,6 +200,8 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
   canvas->drawFastHLine(143, 294, 180, water);
   if (bobberState == BOBBER_CAUGHT) {
     drawBobberFlounder(canvas);
+  } else if (bobberState != BOBBER_TITLE) {
+    drawBobberBay(canvas);
   } else {
   canvas->fillRoundRect(225, 169, 16, 31, 7, lime);
   canvas->fillCircle(233, 238, 52, lime);

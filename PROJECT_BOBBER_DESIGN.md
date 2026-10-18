@@ -193,8 +193,10 @@ Boss anatomy, weight, bait recipe and final encounter remain open.
 Implemented prototype: separate static title screen with PLAY and a fishing
 screen headed CHINCOTEAGUE BAY, one flounder, cast/wait/hook/repeat, weights,
 persistent personal best shown on ready/catch screens, and a session catch
-counter on fishing screens. The float is still placeholder fishing art; no
-boat scenery or animation has been implemented.
+counter on fishing screens. Ready/waiting/bite now have an original static
+pixel scene with a fisherman, boat, marshes, sky, water and small float. The
+title retains its large bobber; catch reveal retains its flounder. Animation
+has not been implemented.
 Adam confirmed the counter works and the best survives restarting the laptop
 emulator at scale 1. The current screen layout is temporary.
 

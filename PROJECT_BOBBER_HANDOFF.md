@@ -50,7 +50,10 @@ outside 8–128 ounces are ignored. Failed saves show a short warning.
 A session catch counter appears beneath the area heading on fishing screens.
 The title screen shows the logo, float and original tagline without statistics.
 PLAY enters the ready-to-cast screen on release; it does not also cast. The
-existing float remains placeholder art; no boat scene or animations yet.
+title retains the original float. Ready/waiting/bite screens now show an
+original static pixel scene: fisherman, wooden boat, marsh banks, clouds, bay
+water, rod and a small float. The bite state adds splash/attention marks. Catch
+reveal retains the flounder artwork. No scene animation yet.
 It starts at zero, increments once per landed fish, and resets on restart.
 Casting, waiting, cancelling and redrawing do not increase it.
 No catch journal, upgrades, or locations yet.
@@ -123,9 +126,12 @@ tagline remains. Adam confirmed it appears; spacing is deferred to final polish.
 Adam confirmed the session counter works; its layout is also deferred to polish.
 The larger design is recorded; title/fishing screen separation is implemented. Two main areas (Chincoteague Bay
 and Blue Mountain Lake) plus Captain Thurl's Grotto are documented in the design
-reference. Have Adam test title → PLAY → CAST at scale 1, including BACK and
-repeat catches, and confirm the saved best is intact after restarting. Choose
-the next step together. Boat scenery, animation, other navigation screens,
+reference. Adam confirmed title → PLAY → fishing works as intended.
+Have Adam inspect the new boat scene at scale 1 in ready, waiting and bite
+states, then catch/recast. Cloud build and Bobber state/persistence tests pass;
+a direct Bobber canvas render was inspected with a circular mask, without using
+upstream --shot. Hardware and live visual/touch behavior remain untested here.
+Choose the next step together. Animation, other navigation screens,
 fights, shops, quests and other species are not implemented yet.
 Visual direction agreed in chat: original pixel art, coastal colors and a calm
 mood, inspired by Cast n’ Chill without copying its artwork.
