@@ -17,6 +17,21 @@ int main() {
   loadBobberRecord();
   assert(bobberBestOz == 0);
   assert(bobberSessionCatches == 0);
+  assert(bobberState == BOBBER_TITLE);
+  updateBobberFishing(&canvas, 10000);
+  assert(bobberState == BOBBER_TITLE);
+  // A cancelled PLAY gesture stays on the title.
+  updateBobberTouch(&canvas, true, 233, 400);
+  updateBobberTouch(&canvas, true, 0, 0);
+  updateBobberTouch(&canvas, false, 0, 0);
+  assert(bobberState == BOBBER_TITLE);
+  updateBobberTouch(&canvas, true, 233, 400);
+  assert(bobberState == BOBBER_TITLE);
+  updateBobberTouch(&canvas, false, 233, 400);
+  assert(bobberState == BOBBER_READY);
+  // Releasing PLAY twice must not cast or change records/counters.
+  updateBobberTouch(&canvas, false, 233, 400);
+  assert(bobberState == BOBBER_READY && bobberBestOz == 0 && bobberSessionCatches == 0);
   // The emulator shim ignores namespaces: use a unique Bobber key, too.
   Preferences prefs;
   prefs.putUInt("upstreamSentinel", 42);
@@ -65,6 +80,7 @@ int main() {
   const auto savedBest = bobberBestOz;
   loadBobberRecord(); // simulate reinitializing gameplay over retained NVS
   assert(bobberBestOz == savedBest && bobberCatchOz == 0 && !bobberNewBest);
+  assert(bobberState == BOBBER_TITLE);
   assert(bobberSessionCatches == 0);
   nvsFailWritesAfter(0);
   // Already saved records must not attempt another write.

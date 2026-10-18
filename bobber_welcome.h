@@ -7,8 +7,8 @@
 // Set to 0 to run the upstream game again while fishing is under development.
 #define BOBBER_WELCOME 1
 
-enum BobberState { BOBBER_READY, BOBBER_WAITING, BOBBER_BITE, BOBBER_CAUGHT };
-static BobberState bobberState = BOBBER_READY;
+enum BobberState { BOBBER_TITLE, BOBBER_READY, BOBBER_WAITING, BOBBER_BITE, BOBBER_CAUGHT };
+static BobberState bobberState = BOBBER_TITLE;
 static uint32_t bobberCastAt = 0;
 // Whole ounces avoid rounding when displaying pounds and ounces.
 // The catch is session-only; the personal best is loaded from Bobber storage.
@@ -19,6 +19,7 @@ static bool bobberNewBest = false;
 static uint16_t bobberSavedBestOz = 0;
 
 static void loadBobberRecord() {
+  bobberState = BOBBER_TITLE;
   bobberBestOz = bobberSavedBestOz = 0;
   bobberCatchOz = 0;
   bobberSessionCatches = 0;
@@ -120,18 +121,24 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
 
   canvas->fillScreen(navy);
   canvas->setTextColor(cream);
-  char catches[40];
-  snprintf(catches, sizeof(catches), "Fish caught: %lu",
-           (unsigned long)bobberSessionCatches);
-  canvas->setTextSize(1);
-  canvas->setCursor(233 - strlen(catches) * 3, 54);
-  canvas->print(catches);
-  canvas->setTextSize(2);
-  canvas->setCursor(191, 74);
-  canvas->print("PROJECT");
-  canvas->setTextSize(5);
-  canvas->setCursor(143, 103);
-  canvas->print("BOBBER");
+  if (bobberState == BOBBER_TITLE) {
+    canvas->setTextSize(2);
+    canvas->setCursor(191, 74);
+    canvas->print("PROJECT");
+    canvas->setTextSize(5);
+    canvas->setCursor(143, 103);
+    canvas->print("BOBBER");
+  } else {
+    canvas->setTextSize(2);
+    canvas->setCursor(143, 82);
+    canvas->print("CHINCOTEAGUE BAY");
+    char catches[40];
+    snprintf(catches, sizeof(catches), "Fish caught: %lu",
+             (unsigned long)bobberSessionCatches);
+    canvas->setTextSize(1);
+    canvas->setCursor(233 - strlen(catches) * 3, 112);
+    canvas->print(catches);
+  }
 
   // Water ripples and a two-tone float, kept inside the circular bezel.
   canvas->drawFastHLine(119, 283, 228, water);
@@ -189,11 +196,14 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
       canvas->setCursor(155, 301);
       canvas->print("Record not saved; try again");
     }
-  } else {
+  } else if (bobberState == BOBBER_TITLE) {
     canvas->setCursor(131, 316);
     canvas->print("A little fishing.");
     canvas->setCursor(125, 340);
     canvas->print("A lot of relaxing.");
+  } else {
+    canvas->setCursor(125, 321);
+    canvas->print("Ready when you are.");
     char record[40];
     if (bobberBestOz) {
       snprintf(record, sizeof(record), "Personal best: %u lb %u oz",
@@ -202,7 +212,7 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
       snprintf(record, sizeof(record), "Your first catch awaits.");
     }
     canvas->setTextSize(1);
-    canvas->setCursor(233 - strlen(record) * 3, 365);
+    canvas->setCursor(233 - strlen(record) * 3, 350);
     canvas->print(record);
   }
   canvas->fillRoundRect(BOBBER_BUTTON_X, BOBBER_BUTTON_Y,
@@ -210,7 +220,8 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
   canvas->setTextColor(navy);
   canvas->setTextSize(3);
   canvas->setCursor(197, 389);
-  canvas->print(bobberState == BOBBER_WAITING ? "BACK" :
+  canvas->print(bobberState == BOBBER_TITLE ? "PLAY" :
+                bobberState == BOBBER_WAITING ? "BACK" :
                 bobberState == BOBBER_BITE ? "HOOK" : "CAST");
   canvas->setTextSize(1);
   canvas->flush();
@@ -239,7 +250,8 @@ static void updateBobberTouch(Arduino_Canvas *canvas, bool pressed,
     else if (!bobberButtonContains(x, y)) armed = false;
   } else if (wasDown) {
     if (armed && pressedState == bobberState) {
-      if (bobberState == BOBBER_WAITING) bobberState = BOBBER_READY;
+      if (bobberState == BOBBER_TITLE) bobberState = BOBBER_READY;
+      else if (bobberState == BOBBER_WAITING) bobberState = BOBBER_READY;
       else if (bobberState == BOBBER_BITE) {
         // Roll only on a successful hook, never on redraw or a cancelled cast.
         if (bobberSessionCatches < UINT32_MAX) ++bobberSessionCatches;

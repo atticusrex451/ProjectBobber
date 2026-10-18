@@ -190,8 +190,11 @@ Boss anatomy, weight, bait recipe and final encounter remain open.
 
 ## Current milestone and next decisions
 
-Implemented prototype: one flounder, cast/wait/hook/repeat, weights, persistent
-personal best shown on welcome/catch screens, and a session catch counter.
+Implemented prototype: separate static title screen with PLAY and a fishing
+screen headed CHINCOTEAGUE BAY, one flounder, cast/wait/hook/repeat, weights,
+persistent personal best shown on ready/catch screens, and a session catch
+counter on fishing screens. The float is still placeholder fishing art; no
+boat scenery or animation has been implemented.
 Adam confirmed the counter works and the best survives restarting the laptop
 emulator at scale 1. The current screen layout is temporary.
 

@@ -1,6 +1,6 @@
 # Project Bobber — development handoff
 
-Updated October 17, 2026. Read this before starting a new development chat.
+Updated October 18, 2026. Read this before starting a new development chat.
 
 ## Purpose and working style
 
@@ -35,7 +35,8 @@ With `BOBBER_WELCOME` set to 1, setup initializes display/touch then returns
 before pet initialization; loop runs only the Bobber prototype.
 Setting it to 0 restores the upstream path for development.
 
-Implemented: original welcome screen; CAST; three-second wait; persistent bite
+Implemented: separate PROJECT BOBBER title screen with PLAY; fishing screen
+headed CHINCOTEAGUE BAY with CAST; three-second wait; persistent bite
 prompt; HOOK; flounder illustration and catch message; repeat casting. BACK
 cancels while waiting. Button actions occur on release; dragging off cancels.
 A press spanning a state change cannot activate the newly displayed action.
@@ -46,7 +47,10 @@ is session-only. The best loads at Bobber startup from Preferences namespace
 `bobber`, key `bobberBestOz`; it writes only when the record improves, or retries
 an outstanding failed write on the next successful catch. Invalid saved weights
 outside 8–128 ounces are ignored. Failed saves show a short warning.
-A session catch counter now appears above the PROJECT title on each screen.
+A session catch counter appears beneath the area heading on fishing screens.
+The title screen shows the logo, float and original tagline without statistics.
+PLAY enters the ready-to-cast screen on release; it does not also cast. The
+existing float remains placeholder art; no boat scene or animations yet.
 It starts at zero, increments once per landed fish, and resets on restart.
 Casting, waiting, cancelling and redrawing do not increase it.
 No catch journal, upgrades, or locations yet.
@@ -113,14 +117,16 @@ by GitHub and should not be committed just to move development between devices.
 
 ## Next small gameplay milestone
 
-The welcome screen now shows “Personal best” in pounds and ounces above CAST,
+The fishing ready screen shows “Personal best” in pounds and ounces above CAST,
 or “Your first catch awaits.” when no record exists. The original welcome
 tagline remains. Adam confirmed it appears; spacing is deferred to final polish.
 Adam confirmed the session counter works; its layout is also deferred to polish.
-We paused coding to agree on the larger design. Two main areas (Chincoteague Bay
+The larger design is recorded; title/fishing screen separation is implemented. Two main areas (Chincoteague Bay
 and Blue Mountain Lake) plus Captain Thurl's Grotto are documented in the design
-reference. Choose the next manageable implementation step together; the planned
-screens, fights, shops, quests and other species are not implemented yet.
+reference. Have Adam test title → PLAY → CAST at scale 1, including BACK and
+repeat catches, and confirm the saved best is intact after restarting. Choose
+the next step together. Boat scenery, animation, other navigation screens,
+fights, shops, quests and other species are not implemented yet.
 Visual direction agreed in chat: original pixel art, coastal colors and a calm
 mood, inspired by Cast n’ Chill without copying its artwork.
 Laptop WSL/Ubuntu dependencies, dev-fishing checkout and scale-1 emulator launch
