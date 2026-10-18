@@ -51,9 +51,12 @@ A session catch counter appears beneath the area heading on fishing screens.
 The title screen shows the logo, float and original tagline without statistics.
 PLAY enters the ready-to-cast screen on release; it does not also cast. The
 title retains the original float. Ready/waiting/bite screens now show an
-original static pixel scene: fisherman, wooden boat, marsh banks, clouds, bay
+original pixel scene: fisherman, wooden boat, marsh banks, clouds, bay
 water, rod and a small float. The bite state adds splash/attention marks. Catch
-reveal retains the flounder artwork. No scene animation yet.
+reveal retains the flounder artwork. Ready/waiting have a gently bobbing float;
+water ripples drift in an eight-frame loop at 150 ms per frame. On a bite the
+float rests lower and the attention marks stay steady. Only the scene rectangle
+is redrawn, without delays; title/catch screens remain static.
 It starts at zero, increments once per landed fish, and resets on restart.
 Casting, waiting, cancelling and redrawing do not increase it.
 No catch journal, upgrades, or locations yet.
@@ -127,11 +130,13 @@ Adam confirmed the session counter works; its layout is also deferred to polish.
 The larger design is recorded; title/fishing screen separation is implemented. Two main areas (Chincoteague Bay
 and Blue Mountain Lake) plus Captain Thurl's Grotto are documented in the design
 reference. Adam confirmed title → PLAY → fishing works as intended.
-Have Adam inspect the new boat scene at scale 1 in ready, waiting and bite
-states, then catch/recast. Cloud build and Bobber state/persistence tests pass;
+Adam confirmed the boat scene works. Have him inspect the new float/ripple
+animation at scale 1, including BACK, waiting, bite, catch and recasting. Cloud build and Bobber state/persistence tests pass;
 a direct Bobber canvas render was inspected with a circular mask, without using
 upstream --shot. Hardware and live visual/touch behavior remain untested here.
-Choose the next step together. Animation, other navigation screens,
+Animation checks cover frame cadence/looping, unchanged UI pixels and game
+state, and a bite that remains available after a long wait.
+Choose the next step together. Further animation, other navigation screens,
 fights, shops, quests and other species are not implemented yet.
 Visual direction agreed in chat: original pixel art, coastal colors and a calm
 mood, inspired by Cast n’ Chill without copying its artwork.

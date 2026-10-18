@@ -32,6 +32,23 @@ int main() {
   // Releasing PLAY twice must not cast or change records/counters.
   updateBobberTouch(&canvas, false, 233, 400);
   assert(bobberState == BOBBER_READY && bobberBestOz == 0 && bobberSessionCatches == 0);
+  renderBobberWelcome(&canvas);
+  const auto initialFrame = canvas.fb;
+  const auto animationSeed = g_seed;
+  canvas.frameReady = false;
+  updateBobberFishing(&canvas, 149);
+  assert(canvas.fb == initialFrame && !canvas.frameReady);
+  updateBobberFishing(&canvas, 150);
+  assert(canvas.fb != initialFrame && canvas.frameReady);
+  assert(bobberState == BOBBER_READY && g_seed == animationSeed);
+  assert(bobberBestOz == 0 && bobberSessionCatches == 0);
+  // Only the scene changes; labels and controls remain untouched.
+  for (int y = 0; y < 466; ++y) for (int x = 0; x < 466; ++x)
+    if (x < 73 || x >= 393 || y < 145 || y >= 295)
+      assert(canvas.fb[y * 466 + x] == initialFrame[y * 466 + x]);
+  for (uint32_t now = 300; now <= 1200; now += 150)
+    updateBobberFishing(&canvas, now);
+  assert(canvas.fb == initialFrame); // eight gentle frames form a loop
   // The emulator shim ignores namespaces: use a unique Bobber key, too.
   Preferences prefs;
   prefs.putUInt("upstreamSentinel", 42);
@@ -70,6 +87,8 @@ int main() {
   updateBobberTouch(&canvas, true, 233, 400);
   updateBobberFishing(&canvas, bobberCastAt + 3000);
   updateBobberTouch(&canvas, false, 233, 400);
+  assert(bobberState == BOBBER_BITE && g_seed == seed);
+  updateBobberFishing(&canvas, bobberCastAt + 60000);
   assert(bobberState == BOBBER_BITE && g_seed == seed);
   updateBobberTouch(&canvas, true, 233, 400);
   updateBobberTouch(&canvas, true, 0, 0);

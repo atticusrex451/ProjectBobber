@@ -10,6 +10,8 @@
 enum BobberState { BOBBER_TITLE, BOBBER_READY, BOBBER_WAITING, BOBBER_BITE, BOBBER_CAUGHT };
 static BobberState bobberState = BOBBER_TITLE;
 static uint32_t bobberCastAt = 0;
+static uint32_t bobberAnimationAt = 0;
+static uint8_t bobberAnimationFrame = 0;
 // Whole ounces avoid rounding when displaying pounds and ounces.
 // The catch is session-only; the personal best is loaded from Bobber storage.
 static uint16_t bobberCatchOz = 0;
@@ -20,6 +22,8 @@ static uint16_t bobberSavedBestOz = 0;
 
 static void loadBobberRecord() {
   bobberState = BOBBER_TITLE;
+  bobberAnimationAt = 0;
+  bobberAnimationFrame = 0;
   bobberBestOz = bobberSavedBestOz = 0;
   bobberCatchOz = 0;
   bobberSessionCatches = 0;
@@ -112,7 +116,7 @@ static void drawBobberFlounder(Arduino_Canvas *canvas) {
   canvas->drawLine(207, 244, 213, 237, outline);
 }
 
-// Original static pixel scene; animation can build on this composition later.
+// Original pixel scene, animated in small steps without blocking touch.
 static void drawBobberBay(Arduino_Canvas *canvas) {
   const uint16_t sky = 0x8D79, cloud = 0xDF5B, water = 0x3B50;
   const uint16_t marsh = 0x5B88, reeds = 0x8C6A, dark = 0x1968;
@@ -136,7 +140,13 @@ static void drawBobberBay(Arduino_Canvas *canvas) {
     {94, 225, 31}, {281, 218, 34}, {340, 243, 28},
     {104, 272, 41}, {259, 280, 38}, {192, 290, 24}
   };
-  for (const auto &r : ripples) canvas->fillRect(r[0], r[1], r[2], 2, sky);
+  const int drift[] = {0, 1, 2, 3, 4, 3, 2, 1};
+  const int bob[] = {0, 1, 2, 1, 0, -1, -2, -1};
+  const int phase = bobberAnimationFrame % 8;
+  for (const auto &r : ripples)
+    canvas->fillRect(r[0] + drift[phase], r[1], r[2], 2, sky);
+  // Keep the bite marker steady and visible; the float rests lower on a bite.
+  const int floatY = bobberState == BOBBER_BITE ? 3 : bob[phase];
   // Boat shadow, wooden hull, and pale gunwale.
   canvas->fillRect(153, 264, 102, 4, dark);
   canvas->fillRect(145, 240, 122, 8, wood);
@@ -156,10 +166,10 @@ static void drawBobberBay(Arduino_Canvas *canvas) {
   // Rod and line lead the eye toward the little two-tone float.
   canvas->drawLine(222, 214, 268, 178, dark);
   canvas->drawLine(222, 215, 268, 179, dark);
-  canvas->drawLine(268, 178, 306, 244, cloud);
-  canvas->fillRect(303, 239, 7, 6, 0xBFE0);
-  canvas->fillRect(303, 245, 7, 5, 0xFB00);
-  canvas->fillRect(297, 252, 19, 2, sky);
+  canvas->drawLine(268, 178, 306, 244 + floatY, cloud);
+  canvas->fillRect(303, 239 + floatY, 7, 6, 0xBFE0);
+  canvas->fillRect(303, 245 + floatY, 7, 5, 0xFB00);
+  canvas->fillRect(297, 252 + floatY, 19, 2, sky);
   if (bobberState == BOBBER_BITE) {
     canvas->fillRect(305, 220, 3, 10, cloud);
     canvas->drawLine(294, 232, 289, 226, cloud);
@@ -290,6 +300,16 @@ static void updateBobberFishing(Arduino_Canvas *canvas, uint32_t now) {
   if (bobberState == BOBBER_WAITING && now - bobberCastAt >= 3000) {
     bobberState = BOBBER_BITE;
     renderBobberWelcome(canvas);
+    bobberAnimationAt = now;
+    return;
+  }
+  if ((bobberState == BOBBER_READY || bobberState == BOBBER_WAITING ||
+       bobberState == BOBBER_BITE) && now - bobberAnimationAt >= 150) {
+    bobberAnimationAt = now;
+    bobberAnimationFrame = (bobberAnimationFrame + 1) % 8;
+    // Redraw only the scene rectangle, leaving labels and touch targets intact.
+    drawBobberBay(canvas);
+    canvas->flush();
   }
 }
 
