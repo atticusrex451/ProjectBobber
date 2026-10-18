@@ -163,6 +163,41 @@ static void drawBobberCroaker(Arduino_Canvas *canvas) {
   canvas->drawLine(148, 234, 161, 237, dark);
 }
 
+// Small trophy portraits: identical outlines stay recognizable before discovery.
+static void drawBobberTrophy(Arduino_Canvas *canvas, BobberSpecies species,
+                              int centerY, bool caught) {
+  const uint16_t silhouette = 0x4A69;
+  const uint16_t edge = caught ? 0x39E5 : silhouette;
+  const uint16_t body = caught ? (species == BOBBER_FLOUNDER ? 0xC58E : 0xCE57)
+                               : silhouette;
+  const uint16_t fin = caught ? (species == BOBBER_FLOUNDER ? 0x8BE9 : 0xAC6E)
+                              : silhouette;
+  canvas->fillTriangle(268, centerY, 292, centerY - 16, 292, centerY + 16, fin);
+  if (species == BOBBER_CROAKER) {
+    canvas->fillTriangle(216, centerY - 10, 232, centerY - 28, 254, centerY - 9, fin);
+    canvas->fillTriangle(225, centerY + 10, 245, centerY + 25, 258, centerY + 9, fin);
+  }
+  const int height = species == BOBBER_FLOUNDER ? 23 : 17;
+  for (int x = -48; x <= 48; ++x) {
+    const int h = height * (48 * 48 - x * x) / (48 * 48);
+    canvas->drawFastVLine(224 + x, centerY - h, h * 2 + 1, edge);
+    if (h > 2) canvas->drawFastVLine(224 + x, centerY - h + 2, h * 2 - 3, body);
+  }
+  if (!caught) return; // No eye, gill or markings until this species is caught.
+  canvas->fillCircle(190, centerY - 5, 3, edge);
+  if (species == BOBBER_FLOUNDER) {
+    canvas->fillCircle(197, centerY - 12, 3, edge);
+    const int spots[][2] = {{214, -9}, {232, 7}, {248, -5}, {216, 11}};
+    for (const auto &spot : spots)
+      canvas->fillCircle(spot[0], centerY + spot[1], 3, fin);
+  } else {
+    canvas->drawLine(201, centerY - 10, 207, centerY, edge);
+    canvas->drawLine(207, centerY, 201, centerY + 10, edge);
+    for (int x = 218; x <= 250; x += 8)
+      canvas->drawLine(x, centerY - 9, x + 4, centerY + 7, fin);
+  }
+}
+
 // Original pixel scene, animated in small steps without blocking touch.
 static void drawBobberBay(Arduino_Canvas *canvas) {
   const uint16_t sky = 0x8D79, cloud = 0xDF5B, water = 0x3B50;
@@ -235,13 +270,14 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
   canvas->setTextColor(cream);
   if (bobberState == BOBBER_JOURNAL) {
     canvas->setTextSize(3);
-    canvas->setCursor(170, 75);
-    canvas->print("JOURNAL");
+    canvas->setCursor(125, 60);
+    canvas->print("TROPHY WALL");
     canvas->setTextSize(1);
-    canvas->setCursor(185, 111);
+    canvas->setCursor(185, 96);
     canvas->print("Chincoteague Bay");
     for (int i = 0; i < BOBBER_SPECIES_COUNT; ++i) {
-      const int y = 163 + i * 90;
+      const int y = 178 + i * 128;
+      drawBobberTrophy(canvas, (BobberSpecies)i, y - 34, bobberBests[i] != 0);
       canvas->setTextSize(2);
       canvas->setCursor(233 - strlen(bobberNames[i]) * 6, y);
       canvas->print(bobberNames[i]);
@@ -251,11 +287,11 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
                  bobberBests[i] % 16);
       else snprintf(record, sizeof(record), "Not caught yet");
       canvas->setTextSize(2);
-      canvas->setCursor(233 - strlen(record) * 6, y + 28);
+      canvas->setCursor(233 - strlen(record) * 6, y + 24);
       canvas->print(record);
       if (bobberBests[i] > bobberSavedBests[i]) {
         canvas->setTextSize(1);
-        canvas->setCursor(188, y + 50);
+        canvas->setCursor(188, y + 44);
         canvas->print("Record not saved");
       }
     }

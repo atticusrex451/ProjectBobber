@@ -178,3 +178,17 @@ drag from JOURNAL to CAST, no animation/state changes while browsing, and no
 accidental cast on BACK release. A circular Bobber render with one caught and
 one uncaught species was inspected directly (not upstream --shot). Have Adam
 check JOURNAL → BACK at scale 1, confirm both saved bests, then catch/recast.
+
+## Trophy wall (October 18)
+
+The journal now displays a two-entry TROPHY WALL: small original fish portraits
+above species names and their personal-best weights. Uncaught fish use the same
+portrait outline in gray with no internal details and “Not caught yet”. Caught
+fish reveal color/markings. Existing valid species bests unlock the portraits;
+there is no new save format or reset of old records. BACK navigation is unchanged.
+Both entries fit on one page; paging is deferred until more species are added.
+
+Cloud build and existing Bobber/navigation/persistence checks pass. A circular
+render of caught flounder plus uncaught croaker was visually inspected directly,
+not via upstream --shot. Have Adam check the trophy wall at scale 1 with his
+existing records, then return to fishing. No gameplay or catch-odds change.
