@@ -191,8 +191,8 @@ Boss anatomy, weight, bait recipe and final encounter remain open.
 ## Current milestone and next decisions
 
 Implemented prototype: separate static title screen with PLAY and a fishing
-screen headed CHINCOTEAGUE BAY, one flounder, cast/wait/hook/repeat, weights,
-persistent personal best shown on ready/catch screens, and a session catch
+screen headed CHINCOTEAGUE BAY, flounder and croaker, cast/wait/hook/repeat, weights,
+persistent species-specific personal bests shown on ready/catch screens, and a session catch
 counter on fishing screens. Ready/waiting/bite now have an original
 pixel scene with a fisherman, boat, marshes, sky, water and small float. The
 title retains its large bobber; catch reveal retains its flounder. Gentle float

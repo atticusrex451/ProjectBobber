@@ -15,7 +15,7 @@ int main() {
   };
   nvs().clear();
   loadBobberRecord();
-  assert(bobberBestOz == 0);
+  assert(bobberBests[bobberSpecies] == 0);
   assert(bobberSessionCatches == 0);
   assert(bobberState == BOBBER_TITLE);
   updateBobberFishing(&canvas, 10000);
@@ -31,7 +31,7 @@ int main() {
   assert(bobberState == BOBBER_READY);
   // Releasing PLAY twice must not cast or change records/counters.
   updateBobberTouch(&canvas, false, 233, 400);
-  assert(bobberState == BOBBER_READY && bobberBestOz == 0 && bobberSessionCatches == 0);
+  assert(bobberState == BOBBER_READY && bobberBests[bobberSpecies] == 0 && bobberSessionCatches == 0);
   renderBobberWelcome(&canvas);
   const auto initialFrame = canvas.fb;
   const auto animationSeed = g_seed;
@@ -41,7 +41,7 @@ int main() {
   updateBobberFishing(&canvas, 150);
   assert(canvas.fb != initialFrame && canvas.frameReady);
   assert(bobberState == BOBBER_READY && g_seed == animationSeed);
-  assert(bobberBestOz == 0 && bobberSessionCatches == 0);
+  assert(bobberBests[bobberSpecies] == 0 && bobberSessionCatches == 0);
   // Only the scene changes; labels and controls remain untouched.
   for (int y = 0; y < 466; ++y) for (int x = 0; x < 466; ++x)
     if (x < 73 || x >= 393 || y < 145 || y >= 295)
@@ -54,7 +54,7 @@ int main() {
   prefs.putUInt("upstreamSentinel", 42);
   bool sawSmaller = false, sawLarger = false, sawTie = false;
   for (int i = 0; i < 1000; ++i) {
-    const auto previousBest = bobberBestOz;
+    const auto previousBests = std::vector<uint16_t>(bobberBests, bobberBests + BOBBER_SPECIES_COUNT);
     tap();
     assert(bobberSessionCatches == (uint32_t)i);
     assert(bobberState == BOBBER_WAITING);
@@ -65,8 +65,11 @@ int main() {
     tap();
     assert(bobberState == BOBBER_CAUGHT);
     assert(bobberSessionCatches == (uint32_t)i + 1);
-    assert(bobberCatchOz >= 8 && bobberCatchOz <= 128);
-    assert(bobberBestOz == (bobberCatchOz > previousBest ? bobberCatchOz : previousBest));
+    const auto previousBest = previousBests[bobberSpecies];
+    assert(bobberCatchOz >= bobberMinOz[bobberSpecies] && bobberCatchOz <= bobberMaxOz[bobberSpecies]);
+    for (int j = 0; j < BOBBER_SPECIES_COUNT; ++j)
+      if (j != bobberSpecies) assert(bobberBests[j] == previousBests[j]);
+    assert(bobberBests[bobberSpecies] == (bobberCatchOz > previousBest ? bobberCatchOz : previousBest));
     assert(bobberNewBest == (bobberCatchOz > previousBest));
     sawSmaller |= bobberCatchOz < previousBest;
     sawLarger |= bobberCatchOz > previousBest;
@@ -78,11 +81,11 @@ int main() {
     assert(bobberSessionCatches == (uint32_t)i + 1);
   }
   assert(sawSmaller && sawLarger && sawTie);
-  const auto best = bobberBestOz;
+  const auto best = bobberBests[bobberSpecies];
   const auto seed = g_seed;
   tap(); // cast
   tap(); // cancel
-  assert(bobberState == BOBBER_READY && bobberBestOz == best && g_seed == seed);
+  assert(bobberState == BOBBER_READY && bobberBests[bobberSpecies] == best && g_seed == seed);
   tap();
   updateBobberTouch(&canvas, true, 233, 400);
   updateBobberFishing(&canvas, bobberCastAt + 3000);
@@ -93,13 +96,15 @@ int main() {
   updateBobberTouch(&canvas, true, 233, 400);
   updateBobberTouch(&canvas, true, 0, 0);
   updateBobberTouch(&canvas, false, 0, 0);
-  assert(bobberState == BOBBER_BITE && bobberBestOz == best && g_seed == seed);
+  assert(bobberState == BOBBER_BITE && bobberBests[bobberSpecies] == best && g_seed == seed);
   assert(bobberSessionCatches == 1000);
   assert(prefs.getUInt("upstreamSentinel") == 42);
-  const auto savedBest = bobberBestOz;
+  const auto savedBest = bobberBests[BOBBER_FLOUNDER];
+  const auto savedCroaker = bobberBests[BOBBER_CROAKER];
   loadBobberRecord(); // simulate reinitializing gameplay over retained NVS
-  assert(bobberBestOz == savedBest && bobberCatchOz == 0 && !bobberNewBest);
+  assert(bobberBests[bobberSpecies] == savedBest && bobberCatchOz == 0 && !bobberNewBest);
   assert(bobberState == BOBBER_TITLE);
+  assert(bobberBests[BOBBER_CROAKER] == savedCroaker && savedCroaker > 0);
   assert(bobberSessionCatches == 0);
   nvsFailWritesAfter(0);
   // Already saved records must not attempt another write.
@@ -108,19 +113,19 @@ int main() {
   nvsResumeWrites();
   prefs.putUShort("bobberBestOz", 999);
   loadBobberRecord();
-  assert(bobberBestOz == 0);
+  assert(bobberBests[bobberSpecies] == 0);
   prefs.putUShort("bobberBestOz", 7);
   loadBobberRecord();
-  assert(bobberBestOz == 0);
+  assert(bobberBests[bobberSpecies] == 0);
   // Failed saves retain the in-memory record, and retry without replacing it.
-  bobberBestOz = 100;
+  bobberBests[bobberSpecies] = 100;
   nvsFailWritesAfter(0);
   saveBobberRecord();
-  assert(bobberBestOz == 100 && bobberSavedBestOz == 0);
+  assert(bobberBests[bobberSpecies] == 100 && bobberSavedBests[bobberSpecies] == 0);
   nvsResumeWrites();
   saveBobberRecord();
   loadBobberRecord();
-  assert(bobberBestOz == 100 && bobberSavedBestOz == 100);
+  assert(bobberBests[bobberSpecies] == 100 && bobberSavedBests[bobberSpecies] == 100);
   assert(prefs.getUInt("upstreamSentinel") == 42);
   // No writes for a smaller catch or a tie once the record is saved.
   nvsFailWritesAfter(1);

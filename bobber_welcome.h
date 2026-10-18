@@ -16,33 +16,51 @@ static uint8_t bobberAnimationFrame = 0;
 // The catch is session-only; the personal best is loaded from Bobber storage.
 static uint16_t bobberCatchOz = 0;
 static uint32_t bobberSessionCatches = 0;
-static uint16_t bobberBestOz = 0;
+enum BobberSpecies { BOBBER_FLOUNDER, BOBBER_CROAKER, BOBBER_SPECIES_COUNT };
+static BobberSpecies bobberSpecies = BOBBER_FLOUNDER;
+static const char *const bobberNames[] = {"Summer Flounder", "Atlantic Croaker"};
+// Keep the original flounder key so existing personal bests survive this update.
+static const char *const bobberRecordKeys[] = {"bobberBestOz", "croakerBestOz"};
+static const uint16_t bobberMinOz[] = {8, 4};
+static const uint16_t bobberMaxOz[] = {128, 48};
+static uint16_t bobberBests[BOBBER_SPECIES_COUNT] = {};
 static bool bobberNewBest = false;
-static uint16_t bobberSavedBestOz = 0;
+static uint16_t bobberSavedBests[BOBBER_SPECIES_COUNT] = {};
 
 static void loadBobberRecord() {
   bobberState = BOBBER_TITLE;
   bobberAnimationAt = 0;
   bobberAnimationFrame = 0;
-  bobberBestOz = bobberSavedBestOz = 0;
+  bobberSpecies = BOBBER_FLOUNDER;
+  for (int i = 0; i < BOBBER_SPECIES_COUNT; ++i)
+    bobberBests[i] = bobberSavedBests[i] = 0;
   bobberCatchOz = 0;
   bobberSessionCatches = 0;
   bobberNewBest = false;
   Preferences prefs;
   if (!prefs.begin("bobber", true)) return;
-  const uint16_t saved = prefs.getUShort("bobberBestOz", 0);
+  for (int i = 0; i < BOBBER_SPECIES_COUNT; ++i) {
+    const uint16_t saved = prefs.getUShort(bobberRecordKeys[i], 0);
+    if (saved >= bobberMinOz[i] && saved <= bobberMaxOz[i])
+      bobberBests[i] = bobberSavedBests[i] = saved;
+  }
   prefs.end();
-  // Ignore invalid/obsolete data without changing any other game's save.
-  if (saved >= 8 && saved <= 128) bobberBestOz = bobberSavedBestOz = saved;
 }
 
 static void saveBobberRecord() {
-  if (bobberBestOz <= bobberSavedBestOz) return;
+  // Retry pending records for either species, without rewriting saved records.
   Preferences prefs;
-  if (!prefs.begin("bobber", false)) return;
-  if (prefs.putUShort("bobberBestOz", bobberBestOz) == sizeof(uint16_t))
-    bobberSavedBestOz = bobberBestOz;
-  prefs.end();
+  bool opened = false;
+  for (int i = 0; i < BOBBER_SPECIES_COUNT; ++i) {
+    if (bobberBests[i] <= bobberSavedBests[i]) continue;
+    if (!opened) {
+      if (!prefs.begin("bobber", false)) return;
+      opened = true;
+    }
+    if (prefs.putUShort(bobberRecordKeys[i], bobberBests[i]) == sizeof(uint16_t))
+      bobberSavedBests[i] = bobberBests[i];
+  }
+  if (opened) prefs.end();
 }
 static const int BOBBER_BUTTON_X = 143;
 static const int BOBBER_BUTTON_Y = 376;
@@ -114,6 +132,27 @@ static void drawBobberFlounder(Arduino_Canvas *canvas) {
   canvas->drawLine(193, 232, 213, 237, outline);
   canvas->drawLine(193, 232, 207, 244, fin);
   canvas->drawLine(207, 244, 213, 237, outline);
+}
+
+// Original silver-bronze croaker profile, distinct from the flatfish.
+static void drawBobberCroaker(Arduino_Canvas *canvas) {
+  const uint16_t dark = 0x5288, silver = 0xCE57, bronze = 0xAC6E;
+  canvas->fillTriangle(282, 231, 329, 203, 329, 259, bronze);
+  canvas->fillTriangle(200, 206, 228, 178, 267, 211, bronze);
+  canvas->fillTriangle(223, 250, 255, 274, 274, 247, bronze);
+  for (int x = -76; x <= 76; ++x) {
+    int h = 32 * (76 * 76 - x * x) / (76 * 76);
+    canvas->drawFastVLine(224 + x, 232 - h, h * 2 + 1, dark);
+    if (h > 2) canvas->drawFastVLine(224 + x, 234 - h, h * 2 - 3, silver);
+  }
+  for (int x = 204; x < 280; x += 12)
+    canvas->drawLine(x, 216, x + 8, 240, bronze);
+  canvas->drawLine(185, 214, 194, 232, dark);
+  canvas->drawLine(194, 232, 185, 249, dark);
+  canvas->fillTriangle(203, 235, 225, 240, 210, 251, bronze);
+  canvas->fillCircle(171, 224, 5, dark);
+  canvas->fillCircle(170, 223, 2, 0xF7B9);
+  canvas->drawLine(148, 234, 161, 237, dark);
 }
 
 // Original pixel scene, animated in small steps without blocking touch.
@@ -209,7 +248,8 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
   canvas->drawFastHLine(119, 283, 228, water);
   canvas->drawFastHLine(143, 294, 180, water);
   if (bobberState == BOBBER_CAUGHT) {
-    drawBobberFlounder(canvas);
+    if (bobberSpecies == BOBBER_CROAKER) drawBobberCroaker(canvas);
+    else drawBobberFlounder(canvas);
   } else if (bobberState != BOBBER_TITLE) {
     drawBobberBay(canvas);
   } else {
@@ -245,8 +285,8 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
     canvas->setCursor(176, 347);
     canvas->print("Take your time, Dad.");
   } else if (bobberState == BOBBER_CAUGHT) {
-    canvas->setCursor(113, 321);
-    canvas->print("You caught a flounder!");
+    canvas->setCursor(233 - strlen(bobberNames[bobberSpecies]) * 6, 321);
+    canvas->print(bobberNames[bobberSpecies]);
     char weight[40];
     snprintf(weight, sizeof(weight), "%u lb %u oz", bobberCatchOz / 16,
              bobberCatchOz % 16);
@@ -255,11 +295,11 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
     canvas->print(weight);
     snprintf(weight, sizeof(weight), "%s: %u lb %u oz",
              bobberNewBest ? "New personal best" : "Personal best",
-             bobberBestOz / 16, bobberBestOz % 16);
+             bobberBests[bobberSpecies] / 16, bobberBests[bobberSpecies] % 16);
     canvas->setTextSize(1);
     canvas->setCursor(233 - strlen(weight) * 3, 365);
     canvas->print(weight);
-    if (bobberBestOz > bobberSavedBestOz) {
+    if (bobberBests[bobberSpecies] > bobberSavedBests[bobberSpecies]) {
       canvas->setCursor(155, 301);
       canvas->print("Record not saved; try again");
     }
@@ -271,10 +311,10 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
   } else {
     canvas->setCursor(125, 321);
     canvas->print("Ready when you are.");
-    char record[40];
-    if (bobberBestOz) {
-      snprintf(record, sizeof(record), "Personal best: %u lb %u oz",
-               bobberBestOz / 16, bobberBestOz % 16);
+    char record[64];
+    if (bobberBests[bobberSpecies]) {
+      snprintf(record, sizeof(record), "%s best: %u lb %u oz",
+               bobberSpecies == BOBBER_FLOUNDER ? "Flounder" : "Croaker", bobberBests[bobberSpecies] / 16, bobberBests[bobberSpecies] % 16);
     } else {
       snprintf(record, sizeof(record), "Your first catch awaits.");
     }
@@ -332,9 +372,12 @@ static void updateBobberTouch(Arduino_Canvas *canvas, bool pressed,
       else if (bobberState == BOBBER_BITE) {
         // Roll only on a successful hook, never on redraw or a cancelled cast.
         if (bobberSessionCatches < UINT32_MAX) ++bobberSessionCatches;
-        bobberCatchOz = (uint16_t)random(8, 129);
-        bobberNewBest = bobberCatchOz > bobberBestOz;
-        if (bobberNewBest) bobberBestOz = bobberCatchOz;
+        // Equal chances for this first two-species prototype; balance later.
+        bobberSpecies = (BobberSpecies)random(BOBBER_SPECIES_COUNT);
+        bobberCatchOz = (uint16_t)random(bobberMinOz[bobberSpecies],
+                                       bobberMaxOz[bobberSpecies] + 1);
+        bobberNewBest = bobberCatchOz > bobberBests[bobberSpecies];
+        if (bobberNewBest) bobberBests[bobberSpecies] = bobberCatchOz;
         // If storage failed, retry the outstanding record on the next catch.
         saveBobberRecord();
         bobberState = BOBBER_CAUGHT;

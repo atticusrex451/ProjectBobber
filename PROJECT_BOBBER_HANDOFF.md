@@ -143,3 +143,22 @@ mood, inspired by Cast n’ Chill without copying its artwork.
 Laptop WSL/Ubuntu dependencies, dev-fishing checkout and scale-1 emulator launch
 were installed and confirmed working by Adam. This chat is accessible from both
 desktop and laptop. Cloud configuration publication remains unconfirmed.
+
+## Two-species milestone (October 18)
+
+Atlantic Croaker now joins Summer Flounder, with equal catch chances for the
+prototype. Starting gameplay ranges: croaker 4–48 oz, flounder 8–128 oz; these
+are tuning values, not a biological reference. Croaker has original silver/bronze
+profile artwork. Catch reveal names the species and shows its personal best.
+The ready screen labels the last species' best (flounder by default at startup).
+Records are independent: existing `bobberBestOz` remains the flounder key;
+`croakerBestOz` stores croaker, both in Bobber Preferences. No old record is
+reinterpreted or deleted. Pending write failures for either species retry on the
+next catch. Session count remains total fish across both species.
+
+Cloud checks exercise 1,000 mixed catches, species weight bounds, independent
+records and reloads plus existing animation/touch/persistence checks. Have Adam
+catch both species at scale 1 and confirm artwork, labels and records after a
+normal close/reopen. No journal/rarities/shop added. Adam confirmed the gentle
+animation looks good. Future scenery direction: smaller boat, broader background,
+and possibly a fisherman/boat silhouette; not implemented in this milestone.
