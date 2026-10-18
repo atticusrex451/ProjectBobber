@@ -7,7 +7,7 @@
 // Set to 0 to run the upstream game again while fishing is under development.
 #define BOBBER_WELCOME 1
 
-enum BobberState { BOBBER_TITLE, BOBBER_READY, BOBBER_WAITING, BOBBER_BITE, BOBBER_CAUGHT };
+enum BobberState { BOBBER_TITLE, BOBBER_JOURNAL, BOBBER_READY, BOBBER_WAITING, BOBBER_BITE, BOBBER_CAUGHT };
 static BobberState bobberState = BOBBER_TITLE;
 static uint32_t bobberCastAt = 0;
 static uint32_t bobberAnimationAt = 0;
@@ -70,6 +70,14 @@ static const int BOBBER_BUTTON_H = 48;
 static bool bobberButtonContains(int16_t x, int16_t y) {
   return x >= BOBBER_BUTTON_X && x < BOBBER_BUTTON_X + BOBBER_BUTTON_W &&
          y >= BOBBER_BUTTON_Y && y < BOBBER_BUTTON_Y + BOBBER_BUTTON_H;
+}
+
+// Journal is available while ready, so browsing cannot interrupt a cast.
+static int bobberTouchTarget(int16_t x, int16_t y) {
+  if (bobberButtonContains(x, y)) return 1;
+  if (bobberState == BOBBER_READY && x >= 143 && x < 323 &&
+      y >= 304 && y < 344) return 2;
+  return 0;
 }
 
 // Small original flatfish illustration, drawn with the same primitives as the UI.
@@ -225,6 +233,42 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
 
   canvas->fillScreen(navy);
   canvas->setTextColor(cream);
+  if (bobberState == BOBBER_JOURNAL) {
+    canvas->setTextSize(3);
+    canvas->setCursor(170, 75);
+    canvas->print("JOURNAL");
+    canvas->setTextSize(1);
+    canvas->setCursor(185, 111);
+    canvas->print("Chincoteague Bay");
+    for (int i = 0; i < BOBBER_SPECIES_COUNT; ++i) {
+      const int y = 163 + i * 90;
+      canvas->setTextSize(2);
+      canvas->setCursor(233 - strlen(bobberNames[i]) * 6, y);
+      canvas->print(bobberNames[i]);
+      char record[64];
+      if (bobberBests[i])
+        snprintf(record, sizeof(record), "Best: %u lb %u oz", bobberBests[i] / 16,
+                 bobberBests[i] % 16);
+      else snprintf(record, sizeof(record), "Not caught yet");
+      canvas->setTextSize(2);
+      canvas->setCursor(233 - strlen(record) * 6, y + 28);
+      canvas->print(record);
+      if (bobberBests[i] > bobberSavedBests[i]) {
+        canvas->setTextSize(1);
+        canvas->setCursor(188, y + 50);
+        canvas->print("Record not saved");
+      }
+    }
+    canvas->fillRoundRect(BOBBER_BUTTON_X, BOBBER_BUTTON_Y,
+                          BOBBER_BUTTON_W, BOBBER_BUTTON_H, 16, lime);
+    canvas->setTextColor(navy);
+    canvas->setTextSize(3);
+    canvas->setCursor(197, 389);
+    canvas->print("BACK");
+    canvas->setTextSize(1);
+    canvas->flush();
+    return;
+  }
   if (bobberState == BOBBER_TITLE) {
     canvas->setTextSize(2);
     canvas->setCursor(191, 74);
@@ -309,8 +353,10 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
     canvas->setCursor(125, 340);
     canvas->print("A lot of relaxing.");
   } else {
-    canvas->setCursor(125, 321);
-    canvas->print("Ready when you are.");
+    canvas->fillRoundRect(143, 304, 180, 40, 12, water);
+    canvas->setTextSize(2);
+    canvas->setCursor(191, 316);
+    canvas->print("JOURNAL");
     char record[64];
     if (bobberBests[bobberSpecies]) {
       snprintf(record, sizeof(record), "%s best: %u lb %u oz",
@@ -359,15 +405,19 @@ static void updateBobberTouch(Arduino_Canvas *canvas, bool pressed,
   static bool wasDown = false;
   static bool armed = false;
   static BobberState pressedState = BOBBER_READY;
+  static int pressedTarget = 0;
   if (pressed) {
     if (!wasDown) {
-      armed = bobberButtonContains(x, y);
+      pressedTarget = bobberTouchTarget(x, y);
+      armed = pressedTarget != 0;
       pressedState = bobberState;
     }
-    else if (!bobberButtonContains(x, y)) armed = false;
+    else if (bobberTouchTarget(x, y) != pressedTarget) armed = false;
   } else if (wasDown) {
     if (armed && pressedState == bobberState) {
-      if (bobberState == BOBBER_TITLE) bobberState = BOBBER_READY;
+      if (pressedTarget == 2) bobberState = BOBBER_JOURNAL;
+      else if (bobberState == BOBBER_JOURNAL) bobberState = BOBBER_READY;
+      else if (bobberState == BOBBER_TITLE) bobberState = BOBBER_READY;
       else if (bobberState == BOBBER_WAITING) bobberState = BOBBER_READY;
       else if (bobberState == BOBBER_BITE) {
         // Roll only on a successful hook, never on redraw or a cancelled cast.

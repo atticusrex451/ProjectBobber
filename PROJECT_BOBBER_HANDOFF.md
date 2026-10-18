@@ -162,3 +162,19 @@ catch both species at scale 1 and confirm artwork, labels and records after a
 normal close/reopen. No journal/rarities/shop added. Adam confirmed the gentle
 animation looks good. Future scenery direction: smaller boat, broader background,
 and possibly a fisherman/boat silhouette; not implemented in this milestone.
+
+## First journal screen (October 18)
+
+Adam confirmed both species work. The ready-to-cast screen now has a JOURNAL
+button above CAST, replacing the ready prompt. It opens a simple list of Summer
+Flounder and Atlantic Croaker, each with its own best or “Not caught yet”.
+Unsaved records show a warning. BACK returns to ready without casting. The
+journal is only accessible while ready, so browsing cannot interrupt a cast.
+No new save format, quests, species artwork thumbnails or lifetime catch totals
+were added. The session count and species records remain unchanged by browsing.
+
+Cloud build and Bobber checks pass, including journal navigation, a cancelled
+drag from JOURNAL to CAST, no animation/state changes while browsing, and no
+accidental cast on BACK release. A circular Bobber render with one caught and
+one uncaught species was inspected directly (not upstream --shot). Have Adam
+check JOURNAL → BACK at scale 1, confirm both saved bests, then catch/recast.

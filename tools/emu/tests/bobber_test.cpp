@@ -49,6 +49,23 @@ int main() {
   for (uint32_t now = 300; now <= 1200; now += 150)
     updateBobberFishing(&canvas, now);
   assert(canvas.fb == initialFrame); // eight gentle frames form a loop
+  const auto journalSeed = g_seed;
+  updateBobberTouch(&canvas, true, 233, 324);
+  updateBobberTouch(&canvas, true, 233, 400);
+  updateBobberTouch(&canvas, false, 233, 400);
+  assert(bobberState == BOBBER_READY); // dragging to CAST cannot activate either
+  updateBobberTouch(&canvas, true, 233, 324);
+  assert(bobberState == BOBBER_READY);
+  updateBobberTouch(&canvas, false, 233, 324);
+  assert(bobberState == BOBBER_JOURNAL);
+  const auto journalFrame = canvas.fb;
+  updateBobberFishing(&canvas, 10000);
+  assert(canvas.fb == journalFrame && bobberState == BOBBER_JOURNAL);
+  assert(g_seed == journalSeed && bobberSessionCatches == 0);
+  tap();
+  assert(bobberState == BOBBER_READY);
+  updateBobberTouch(&canvas, false, 233, 400);
+  assert(bobberState == BOBBER_READY); // BACK does not also cast
   // The emulator shim ignores namespaces: use a unique Bobber key, too.
   Preferences prefs;
   prefs.putUInt("upstreamSentinel", 42);
