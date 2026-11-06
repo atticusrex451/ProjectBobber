@@ -88,7 +88,7 @@ for src in "$HERE"/*_test.cpp; do
   srcs=("${CORE[@]}")
   standalone "$name" && srcs=("$ROOT/gbsynth.cpp")
   # Bobber directly exercises its header with the emulator canvas.
-  if [[ "$name" == bobber_test || "$name" == bobber_world_test ]]; then srcs=(); extra=("$EMU/font.cpp"); fi
+  if [[ "$name" == bobber*_test && "$name" != bobber_input_test ]]; then srcs=(); extra=("$EMU/font.cpp"); fi
   # This harness includes sketch.cpp itself to inspect its private Bobber state.
   if [ "$name" = bobber_input_test ]; then extra=("$EMU/host_impl.cpp" "$EMU/font.cpp" "$EMU/clock.cpp"); fi
   # every test starts from a clean NVS so one cannot leak state into the next

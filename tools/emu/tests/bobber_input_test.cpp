@@ -39,6 +39,8 @@ int main() {
   click(233, 400);
   assert(bobberState == BOBBER_READY);
   click(302, 326);
+  assert(bobberState == BOBBER_DOCK);
+  click(233, 303);
   assert(bobberState == BOBBER_TRAVEL);
   click(233, 170);
   assert(bobberState == BOBBER_READY);
@@ -50,5 +52,29 @@ int main() {
   assert(bobberState == BOBBER_WAITING);
   click(233, 400);
   assert(bobberState == BOBBER_READY);
+  click(233, 400);
+  assert(bobberState == BOBBER_WAITING);
+  bobberCastAt = millis() - 3000;
+  loop();
+  assert(bobberState == BOBBER_BITE);
+  click(233, 400);
+  assert(bobberState == BOBBER_CAUGHT && bobberEconomy.count == 1);
+  click(233, 400); click(233, 400); // recast/cancel back to ready
+  click(302, 326); // dock
+  click(233, 166); // cooler
+  assert(bobberState == BOBBER_COOLER);
+  click(161, 302);
+  assert(bobberEconomy.fish[0].reserved);
+  click(233, 400); // dock
+  click(233, 234); // shop
+  click(233, 166); // sell fish
+  assert(bobberState == BOBBER_SELL_FISH);
+  click(161, 302); // unreserve
+  click(302, 302); // quote
+  assert(bobberState == BOBBER_CONFIRM);
+  const auto quote = bobberSaleQuote(0);
+  click(233, 400); // confirm sale through real touch release
+  assert(!bobberEconomy.count && bobberEconomy.coins == quote);
+  puts("Bobber firmware economy input: auto-keep, dock/cooler/shop, reservation and sale confirmation passed");
   puts("Bobber firmware input: PLAY, journal, paging, travel, cast/cancel and drag-off passed");
 }

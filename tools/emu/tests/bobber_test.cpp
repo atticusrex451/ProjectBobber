@@ -96,6 +96,7 @@ int main() {
   bool sawSmaller = false, sawLarger = false, sawTie = false;
   unsigned catches[BOBBER_SPECIES_COUNT] = {};
   for (int i = 0; i < 1000; ++i) {
+    if (bobberEconomy.count == BOBBER_COOLER_CAPACITY) assert(bobberSellFish(-1));
     const auto previousBests = std::vector<uint16_t>(bobberBests, bobberBests + BOBBER_SPECIES_COUNT);
     tap();
     assert(bobberSessionCatches == (uint32_t)i);
@@ -124,6 +125,7 @@ int main() {
     assert(bobberSessionCatches == (uint32_t)i + 1);
   }
   assert(sawSmaller && sawLarger && sawTie);
+  if (bobberEconomy.count == BOBBER_COOLER_CAPACITY) assert(bobberSellFish(-1));
   const auto best = bobberBests[bobberSpecies];
   const auto seed = g_seed;
   tap(); // cast

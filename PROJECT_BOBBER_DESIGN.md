@@ -69,7 +69,8 @@ No gear destruction or escalating punishment loop.
 Two main areas and one secret area: Chincoteague Bay, Blue Mountain Lake, then
 Captain Thurl's Grotto. Roster: eight regular species plus one legend in each,
 24 regular species and three legends total. All three areas and their rosters
-are now implemented in the prototype; the shop and fight systems remain future work.
+are now implemented in the prototype. The shop now buys catches; bait purchases,
+tackle upgrades and fight systems remain future work.
 
 Confirmed progression (November 6): discover all eight regular species in a biome
 before its legend becomes available. Land the Old Man to unlock Blue Mountain
@@ -110,6 +111,34 @@ catching Iron-Maw, followed by a collection-completion reward, is a proposal.
 Adam also suggested a further secret fish or level for completing all variants;
 final reward and completion requirements are not decided. Do not silently add
 a fourth area to scope.
+
+## Cooler and starter shop rules
+
+Implemented first economy milestone: regular fish enter a 20-fish shared cooler
+automatically, retaining their individual species and whole-ounce weight. Existing
+discoveries and personal bests remain permanent after sales/releases. Old saves
+start with an empty cooler and zero coins; old bests do not fabricate inventory.
+Legend catches remain journal trophies and never occupy a slot or sell for coins.
+
+When full, ordinary CAST opens the cooler rather than rolling/discarding another
+catch. READY now has JOURNAL and DOCK; the dock opens COOLER, SHOP and TRAVEL.
+The cooler pages through individual fish with RESERVE/UNRESERVE and RELEASE.
+Reserved fish are excluded from both individual and bulk sales and must be
+unreserved before release. SHOP offers individual selling or SELL ALL, with a
+quoted payout and confirmation/cancellation before any change. Basic bait stays
+free as in the current fishing loop. No inventory bait, recipes, gear purchases
+or cooler upgrades have been added yet.
+
+Provisional prices use a species-specific whole-coin price per pound, multiplied
+by the fish's ounce weight and rounded up (minimum one coin). Rates live in
+bobber_economy.h; they are starting tuning values, not a finished economy.
+Inventory, reservation flags and wallet persist together in a versioned single
+NVS blob, preventing half-completed sales between separate keys. Failed sales or
+releases leave both live fish and wallet unchanged. A catch that fails to save
+stays in memory with a retry warning; further ordinary casts wait for a save.
+Unknown/corrupt economy data is preserved and blocks economic changes/ordinary
+casting rather than silently replacing the player's wallet. The desktop emulator
+still requires a normal close to write its save file.
 
 ## Shopkeeper quests
 
@@ -206,7 +235,7 @@ Discover all eight local species to seek that area's legend. The Old Man opens
 the lake; both main-area legends open the grotto. The boss encounters currently
 use the same wait/hook/land loop as ordinary fish. Ordinary casts have equal
 provisional chances among the current region's eight regular fish. No special
-bait, inventory consumption, tension fights, shop, coins, quests, lifetime totals,
+bait, inventory consumption, tension fights, bait/tackle purchases, quests, lifetime totals,
 variants, ending rewards, or calendar systems are implemented yet.
 
 The static title retains its large bobber. Fishing scenes share a seated angler
@@ -217,7 +246,7 @@ Do not spend a large milestone polishing these placeholders before that directio
 is agreed. Hardware remains untested; emulator checks cannot establish physical
 touch/display behavior.
 
-Next: playtest travel, regional collections, all-eight discovery gates, legend
-catches and save/reload. Then design the bait and tackle shop, including special
-bait recipes and economy; do not silently consume a discovered fish or reset a
-record when preparing bait. Keep the relaxed tone and patient bite prompt.
+Next: playtest automatic cooler storage, reservations, releases, quoted individual/
+bulk sales and wallet save/reload, along with existing travel and collection
+progression. Then agree special-bait recipes, purchase prices and tackle benefits;
+do not consume a discovery or reset a personal best when using inventory fish. Keep the relaxed tone and patient bite prompt.

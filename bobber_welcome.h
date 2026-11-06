@@ -3,12 +3,13 @@
 #include "Arduino_GFX_Library.h"
 #include <Preferences.h>
 #include "bobber_species.h"
+#include "bobber_economy.h"
 
 // First Bobber milestone: an original, asset-free screen for the round display.
 // Set to 0 to run the upstream game again while fishing is under development.
 #define BOBBER_WELCOME 1
 
-enum BobberState { BOBBER_TITLE, BOBBER_JOURNAL, BOBBER_TRAVEL, BOBBER_READY, BOBBER_WAITING, BOBBER_BITE, BOBBER_CAUGHT };
+enum BobberState { BOBBER_TITLE, BOBBER_JOURNAL, BOBBER_TRAVEL, BOBBER_DOCK, BOBBER_COOLER, BOBBER_SHOP, BOBBER_SELL_FISH, BOBBER_CONFIRM, BOBBER_READY, BOBBER_WAITING, BOBBER_BITE, BOBBER_CAUGHT };
 static BobberState bobberState = BOBBER_TITLE;
 static uint32_t bobberCastAt = 0;
 static uint32_t bobberAnimationAt = 0;
@@ -22,6 +23,10 @@ static BobberRegion bobberRegion = BOBBER_BAY;
 static BobberRegion bobberSavedRegion = BOBBER_BAY;
 static bool bobberLegendCast = false;
 static int bobberJournalPage = 0;
+static int bobberCoolerPage = 0;
+enum BobberShopAction { BOBBER_SELL_ONE, BOBBER_SELL_ALL, BOBBER_RELEASE_ONE };
+static BobberShopAction bobberShopAction = BOBBER_SELL_ONE;
+static BobberState bobberShopReturn = BOBBER_SHOP;
 static uint16_t bobberBests[BOBBER_SPECIES_COUNT] = {};
 static bool bobberNewBest = false;
 static uint16_t bobberSavedBests[BOBBER_SPECIES_COUNT] = {};
@@ -44,6 +49,8 @@ static bool bobberRegionUnlocked(BobberRegion region) {
 }
 
 static void loadBobberRecord() {
+  loadBobberEconomy();
+  bobberCoolerPage = 0;
   bobberState = BOBBER_TITLE;
   bobberAnimationAt = 0;
   bobberAnimationFrame = 0;
@@ -103,9 +110,16 @@ static bool bobberButtonContains(int16_t x, int16_t y) {
          y >= BOBBER_BUTTON_Y && y < BOBBER_BUTTON_Y + BOBBER_BUTTON_H;
 }
 
+static int bobberShopTouchTarget(int16_t x, int16_t y);
+
 // Journal is available while ready, so browsing cannot interrupt a cast.
 static int bobberTouchTarget(int16_t x, int16_t y) {
-  if (bobberButtonContains(x, y)) return 1;
+  if (bobberButtonContains(x, y)) {
+    if ((bobberState == BOBBER_READY || bobberState == BOBBER_CAUGHT) && bobberEconomyUnreadable) return 0;
+    return 1;
+  }
+  const int shopTarget = bobberShopTouchTarget(x, y);
+  if (shopTarget) return shopTarget;
   if (bobberState == BOBBER_JOURNAL && y >= 376 && y < 420) {
     if (x >= 95 && x < 139 && bobberJournalPage > 0) return 3;
     if (x >= 327 && x < 371 && bobberJournalPage + 1 < BOBBER_JOURNAL_PAGES) return 4;
@@ -439,6 +453,8 @@ static void drawBobberScene(Arduino_Canvas *canvas) {
   }
 }
 
+#include "bobber_shop_ui.h"
+
 static void renderBobberWelcome(Arduino_Canvas *canvas) {
   const uint16_t navy = 0x08E4;
   const uint16_t cream = 0xF7B9;
@@ -448,6 +464,7 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
 
   canvas->fillScreen(navy);
   canvas->setTextColor(cream);
+  if (renderBobberShop(canvas)) return;
   if (bobberState == BOBBER_TRAVEL) {
     canvas->setTextSize(3);
     canvas->setCursor(152, 72);
@@ -586,7 +603,12 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
     canvas->print(catches);
   }
 
-  if (bobberRegion != bobberSavedRegion) {
+  if (bobberEconomyDirty || bobberEconomyUnreadable) {
+    canvas->setTextSize(1);
+    const char *message = bobberEconomyUnreadable ? "Cooler save unreadable" : "Catch not saved. Retry before exit.";
+    canvas->setCursor(233 - strlen(message) * 3, 128);
+    canvas->print(message);
+  } else if (bobberRegion != bobberSavedRegion) {
     canvas->setTextSize(1);
     canvas->setCursor(155, 128);
     canvas->print("Travel not saved; retry");
@@ -675,10 +697,12 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
     canvas->setTextSize(2);
     canvas->setCursor(120, 318);
     canvas->print("JOURNAL");
-    canvas->setCursor(268, 318);
-    canvas->print("TRAVEL");
+    canvas->setCursor(280, 318);
+    canvas->print("DOCK");
     char record[64];
-    if (bobberBests[bobberSpecies]) {
+    if (bobberEconomy.count >= BOBBER_COOLER_CAPACITY) {
+      snprintf(record, sizeof(record), "Cooler full. Sell or release fish.");
+    } else if (bobberBests[bobberSpecies]) {
       snprintf(record, sizeof(record), "%s best: %u lb %u oz",
                bobberShortNames[bobberSpecies], bobberBests[bobberSpecies] / 16, bobberBests[bobberSpecies] % 16);
     } else {
@@ -691,11 +715,17 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
   canvas->fillRoundRect(BOBBER_BUTTON_X, BOBBER_BUTTON_Y,
                         BOBBER_BUTTON_W, BOBBER_BUTTON_H, 16, lime);
   canvas->setTextColor(navy);
-  canvas->setTextSize(3);
-  canvas->setCursor(197, 389);
-  canvas->print(bobberState == BOBBER_TITLE ? "PLAY" :
-                bobberState == BOBBER_WAITING ? "BACK" :
-                bobberState == BOBBER_BITE ? "HOOK" : "CAST");
+  const bool canCast = bobberState == BOBBER_READY || bobberState == BOBBER_CAUGHT;
+  const char *button = bobberState == BOBBER_TITLE ? "PLAY" :
+                       bobberState == BOBBER_WAITING ? "BACK" :
+                       bobberState == BOBBER_BITE ? "HOOK" :
+                       canCast && bobberEconomyUnreadable ? "SAVE ERROR" :
+                       canCast && bobberEconomyDirty ? "RETRY SAVE" :
+                       canCast && bobberEconomy.count >= BOBBER_COOLER_CAPACITY ? "COOLER" : "CAST";
+  const int buttonSize = strlen(button) > 6 ? 2 : 3;
+  canvas->setTextSize(buttonSize);
+  canvas->setCursor(233 - strlen(button) * 3 * buttonSize, buttonSize == 3 ? 389 : 392);
+  canvas->print(button);
   canvas->setTextSize(1);
   canvas->flush();
 }
@@ -735,9 +765,10 @@ static void updateBobberTouch(Arduino_Canvas *canvas, bool pressed,
     else if (bobberTouchTarget(x, y) != pressedTarget) armed = false;
   } else if (wasDown) {
     if (armed && pressedState == bobberState && bobberTouchTarget(x, y) == pressedTarget) {
-      if (pressedTarget == 3) --bobberJournalPage;
+      if (handleBobberShopTouch(pressedTarget)) {}
+      else if (pressedTarget == 3) --bobberJournalPage;
       else if (pressedTarget == 4) ++bobberJournalPage;
-      else if (pressedTarget == 5) bobberState = BOBBER_TRAVEL;
+      else if (pressedTarget == 5) bobberState = BOBBER_DOCK;
       else if (pressedTarget >= 10 && pressedTarget < 10 + BOBBER_REGION_COUNT) {
         const BobberRegion destination = (BobberRegion)(pressedTarget - 10);
         if (!bobberRegionUnlocked(destination)) { armed = false; wasDown = pressed; return; }
@@ -765,6 +796,15 @@ static void updateBobberTouch(Arduino_Canvas *canvas, bool pressed,
       else if (bobberState == BOBBER_JOURNAL || bobberState == BOBBER_TRAVEL) bobberState = BOBBER_READY;
       else if (bobberState == BOBBER_TITLE) bobberState = BOBBER_READY;
       else if (bobberState == BOBBER_WAITING) { bobberState = BOBBER_READY; bobberLegendCast = false; }
+      else if ((bobberState == BOBBER_READY || bobberState == BOBBER_CAUGHT) && bobberEconomyDirty) {
+        retryBobberEconomy();
+        saveBobberRecord();
+      }
+      else if ((bobberState == BOBBER_READY || bobberState == BOBBER_CAUGHT) &&
+               bobberEconomy.count >= BOBBER_COOLER_CAPACITY) {
+        bobberCoolerPage = 0;
+        bobberState = BOBBER_COOLER;
+      }
       else if (bobberState == BOBBER_BITE) {
         // Roll only on a successful hook, never on redraw or a cancelled cast.
         if (bobberSessionCatches < UINT32_MAX) ++bobberSessionCatches;
@@ -778,6 +818,7 @@ static void updateBobberTouch(Arduino_Canvas *canvas, bool pressed,
         if (bobberNewBest) bobberBests[bobberSpecies] = bobberCatchOz;
         // If storage failed, retry the outstanding record on the next catch.
         saveBobberRecord();
+        bobberStoreCatch(bobberSpecies, bobberCatchOz);
         bobberState = BOBBER_CAUGHT;
       }
       else {

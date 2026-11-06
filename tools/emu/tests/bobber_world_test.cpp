@@ -26,6 +26,7 @@ int main() {
   };
   auto returnReady = [&]() {
     assert(bobberState == BOBBER_CAUGHT);
+    if (bobberEconomy.count == BOBBER_COOLER_CAPACITY) assert(bobberSellFish(-1));
     mainTap(); // ordinary recast
     assert(!bobberLegendCast && bobberState == BOBBER_WAITING);
     mainTap(); // cancel
@@ -34,6 +35,8 @@ int main() {
   auto chooseRegion = [&](BobberRegion region) {
     assert(bobberState == BOBBER_READY);
     tap(302, 326);
+    assert(bobberState == BOBBER_DOCK);
+    tap(233, 303);
     assert(bobberState == BOBBER_TRAVEL);
     const auto seed = g_seed;
     const auto count = bobberSessionCatches;
@@ -76,6 +79,8 @@ int main() {
   mainTap();
   assert(bobberState == BOBBER_READY);
   tap(302, 326);
+  assert(bobberState == BOBBER_DOCK);
+  tap(233, 303);
   assert(bobberState == BOBBER_TRAVEL);
   for (int r = 1; r < BOBBER_REGION_COUNT; ++r) {
     tap(233, 170 + r * 68);

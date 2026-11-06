@@ -310,3 +310,50 @@ setup/loop through the emulator touch driver and IRQ, rather than calling the
 Bobber handler directly. It reproduced the failure before the fix and now checks
 PLAY, journal/paging, travel, cast/cancel and drag-off. The direct-handler Bobber
 and world suites remain useful but did not cover this adapter boundary.
+
+
+## First economy milestone: cooler, selling and coins
+
+Adam approved implementing the cooler/selling/persistent-coin milestone before
+bait purchases and tackle upgrades. Regular catches now auto-fill a 20-fish
+shared cooler, retaining species and exact ounce weight. Existing discoveries,
+personal bests and biome/legend unlocks are not consumed by selling or release.
+Legends remain permanent journal trophies and do not enter the cooler.
+
+READY now shows JOURNAL and DOCK above CAST. DOCK opens COOLER, SHOP and TRAVEL.
+The cooler displays one fish per page, its weight and sale value. RESERVE toggles
+protection against individual/bulk selling and release; unreserve to use it.
+RELEASE asks confirmation and pays no coins. SHOP offers SELL FISH or SELL ALL;
+both quote the price and allow cancellation. Bulk selling leaves reserved fish.
+A full cooler changes ordinary CAST to COOLER instead of silently dropping fish.
+Legend casts remain available because they do not require cooler space.
+
+The initial prices in bobber_economy.h are provisional per-species coins/pound,
+rounded up by actual ounce weight (minimum one coin). There is no spending yet;
+basic bait stays free, and special bait/recipes/gear purchases are the next step.
+Old saves gain an empty cooler and zero coins without changing old records.
+
+Wallet, cooler and reservations use one versioned/checksummed 96-byte NVS blob
+under bobberCooler, with explicit byte encoding rather than C++ struct padding.
+Sales and releases apply only after the combined write succeeds, avoiding fish/
+coin duplication or loss from partial transactions. A failed catch write keeps
+the catch live and offers RETRY SAVE before more ordinary casting; retry before
+closing. Failed transaction writes show a notice and retain the prior fish/coins.
+Unknown/corrupt economy saves are left intact and block ordinary casts/economic
+changes for diagnosis. Desktop save files still write on normal emulator close.
+
+Validation: emulator build and four Bobber suites pass: the new economy suite
+covers auto-keep, the exact 20-fish capacity, all slot weights/species reloading,
+reservations, release, quoted/cancelled/confirmed individual and bulk selling,
+record preservation, wallet reload, failed-sale atomicity/retry, failed-catch
+retention/retry, corrupt/future save preservation and coin overflow. Real firmware
+input tests now exercise landing a catch, dock/cooler/shop navigation, reservation
+and sale confirmation through setup/loop and the touch driver. Existing 2,500
+catch/progression checks sell full coolers explicitly to continue stress testing.
+The cooler/shop/confirmation screens were rendered through Bobber and inspected.
+Hardware and physical touch remain untested. No existing user saves were modified.
+
+Laptop playtest: pull dev-fishing, rebuild, launch at scale 1. Catch fish, use
+DOCK -> COOLER to reserve one, then DOCK -> SHOP to preview and cancel a sale.
+Confirm a sale, verify reserved fish stay after SELL ALL, then close/reopen
+normally to check wallet/cooler/records. Buy-bait/tackle UI is not implemented yet.
