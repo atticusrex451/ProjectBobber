@@ -296,3 +296,17 @@ touchscreen checks. Existing saves were not altered by the tests. Environment sc
 Next: Adam's playtest, then agree the bait/tackle shop inventory, recipes, prices
 and gear benefits. Preserve the all-eight discovery requirement when adding bait;
 records represent discoveries and must not be consumed as inventory.
+
+## PLAY release-coordinate fix
+
+Adam's laptop launch exposed an integration regression: the firmware initialized
+getPoint output coordinates to zero on every poll, and the driver returns no
+coordinates on release. The new release-position guard therefore rejected PLAY
+(and other buttons) at (0,0). Preserve the last valid touch sample in the Bobber
+firmware loop and pass it on release. Dragging off a button still cancels it.
+
+The new bobber_input_test includes the generated real firmware and drives its
+setup/loop through the emulator touch driver and IRQ, rather than calling the
+Bobber handler directly. It reproduced the failure before the fix and now checks
+PLAY, journal/paging, travel, cast/cancel and drag-off. The direct-handler Bobber
+and world suites remain useful but did not cover this adapter boundary.

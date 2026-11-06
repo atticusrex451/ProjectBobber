@@ -997,12 +997,19 @@ void ensureMon() {
 void loop() {
   if (BOBBER_WELCOME) {
     static bool bobberTouchDown = false;
+    static int16_t bobberTouchX = 0, bobberTouchY = 0;
     updateBobberFishing(gfx, millis());
     if (gTouchIrq || bobberTouchDown) {
       gTouchIrq = false;
       int16_t x = 0, y = 0;
       bobberTouchDown = touch.getPoint(&x, &y, 1) > 0;
-      updateBobberTouch(gfx, bobberTouchDown, x, y);
+      // getPoint supplies coordinates only while touching. A release must use
+      // the last valid position, not the zero-initialized output arguments.
+      if (bobberTouchDown) {
+        bobberTouchX = x;
+        bobberTouchY = y;
+      }
+      updateBobberTouch(gfx, bobberTouchDown, bobberTouchX, bobberTouchY);
     }
     delay(20);
     return;
