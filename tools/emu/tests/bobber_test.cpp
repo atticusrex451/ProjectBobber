@@ -72,10 +72,16 @@ int main() {
   pageTap(349);
   assert(bobberJournalPage == 1 && bobberState == BOBBER_JOURNAL);
   updateBobberTouch(&canvas, false, 349, 398);
-  pageTap(349); // disabled next
-  assert(bobberJournalPage == 1);
-  pageTap(115);
-  assert(bobberJournalPage == 0);
+  for (int page = 2; page < BOBBER_JOURNAL_PAGES; ++page) {
+    pageTap(349);
+    assert(bobberJournalPage == page);
+  }
+  pageTap(349); // disabled next on the final page
+  assert(bobberJournalPage == BOBBER_JOURNAL_PAGES - 1);
+  for (int page = BOBBER_JOURNAL_PAGES - 2; page >= 0; --page) {
+    pageTap(115);
+    assert(bobberJournalPage == page);
+  }
   const auto journalFrame = canvas.fb;
   updateBobberFishing(&canvas, 10000);
   assert(canvas.fb == journalFrame && bobberState == BOBBER_JOURNAL);
@@ -88,6 +94,7 @@ int main() {
   Preferences prefs;
   prefs.putUInt("upstreamSentinel", 42);
   bool sawSmaller = false, sawLarger = false, sawTie = false;
+  unsigned catches[BOBBER_SPECIES_COUNT] = {};
   for (int i = 0; i < 1000; ++i) {
     const auto previousBests = std::vector<uint16_t>(bobberBests, bobberBests + BOBBER_SPECIES_COUNT);
     tap();
@@ -100,6 +107,7 @@ int main() {
     tap();
     assert(bobberState == BOBBER_CAUGHT);
     assert(bobberSessionCatches == (uint32_t)i + 1);
+    ++catches[bobberSpecies];
     const auto previousBest = previousBests[bobberSpecies];
     assert(bobberCatchOz >= bobberMinOz[bobberSpecies] && bobberCatchOz <= bobberMaxOz[bobberSpecies]);
     for (int j = 0; j < BOBBER_SPECIES_COUNT; ++j)
@@ -134,6 +142,7 @@ int main() {
   assert(bobberState == BOBBER_BITE && bobberBests[bobberSpecies] == best && g_seed == seed);
   assert(bobberSessionCatches == 1000);
   assert(prefs.getUInt("upstreamSentinel") == 42);
+  const auto allSaved = std::vector<uint16_t>(bobberBests, bobberBests + BOBBER_SPECIES_COUNT);
   const auto savedBest = bobberBests[BOBBER_FLOUNDER];
   const auto savedCroaker = bobberBests[BOBBER_CROAKER];
   const auto savedSpot = bobberBests[BOBBER_SPOT];
@@ -143,6 +152,27 @@ int main() {
   assert(bobberBests[BOBBER_CROAKER] == savedCroaker && savedCroaker > 0);
   assert(bobberBests[BOBBER_SPOT] == savedSpot && savedSpot > 0);
   assert(bobberSessionCatches == 0);
+  assert(BOBBER_BAY_COUNT == 8 && BOBBER_JOURNAL_PAGES == 4);
+  for (int i = 0; i < BOBBER_SPECIES_COUNT; ++i) {
+    assert(catches[i] > 0);
+    assert(bobberBests[i] == allSaved[i] && bobberBests[i] > 0);
+    assert(strlen(bobberRecordKeys[i]) <= 15); // ESP32 Preferences key limit
+    for (int j = 0; j < i; ++j)
+      assert(strcmp(bobberRecordKeys[i], bobberRecordKeys[j]) != 0);
+  }
+  // Every new species reveals distinct art without touching records or RNG.
+  std::vector<std::vector<uint16_t>> portraits;
+  for (int i = BOBBER_WEAKFISH; i < BOBBER_SPECIES_COUNT; ++i) {
+    canvas.fillScreen(0);
+    drawBobberTrophy(&canvas, (BobberSpecies)i, 144, false);
+    const auto silhouette = canvas.fb;
+    canvas.fillScreen(0);
+    drawBobberTrophy(&canvas, (BobberSpecies)i, 144, true);
+    assert(canvas.fb != silhouette);
+    for (const auto &portrait : portraits) assert(canvas.fb != portrait);
+    portraits.push_back(canvas.fb);
+    assert(g_seed == seed && bobberBests[i] == allSaved[i]);
+  }
   nvsFailWritesAfter(0);
   // Already saved records must not attempt another write.
   saveBobberRecord();
@@ -169,6 +199,29 @@ int main() {
   saveBobberRecord();
   assert(nvsWriteBudget() == 1);
   nvsResumeWrites();
+  // New keys reject out-of-range saves independently, and retry a partial save.
+  for (int i = BOBBER_WEAKFISH; i < BOBBER_SPECIES_COUNT; ++i) {
+    prefs.putUShort(bobberRecordKeys[i], bobberMaxOz[i] + 1);
+  }
+  loadBobberRecord();
+  for (int i = BOBBER_WEAKFISH; i < BOBBER_SPECIES_COUNT; ++i) {
+    assert(bobberBests[i] == 0);
+    bobberBests[i] = bobberMinOz[i];
+  }
+  nvsFailWritesAfter(2);
+  saveBobberRecord();
+  assert(bobberSavedBests[BOBBER_WEAKFISH] == bobberMinOz[BOBBER_WEAKFISH]);
+  assert(bobberSavedBests[BOBBER_STRIPED_BASS] == bobberMinOz[BOBBER_STRIPED_BASS]);
+  assert(bobberSavedBests[BOBBER_SPECKLED_TROUT] == 0);
+  nvsResumeWrites();
+  saveBobberRecord();
+  loadBobberRecord();
+  for (int i = BOBBER_WEAKFISH; i < BOBBER_SPECIES_COUNT; ++i)
+    assert(bobberBests[i] == bobberMinOz[i]);
+  assert(bobberBests[BOBBER_FLOUNDER] == 100);
+  assert(bobberBests[BOBBER_CROAKER] == savedCroaker);
+  assert(bobberBests[BOBBER_SPOT] == savedSpot);
+  puts("Bobber: eight species, four pages, distinct portraits and partial-save recovery passed");
   puts("Bobber persistence: reload, invalid data, failed writes/retry, upstream isolation passed");
   puts("Bobber: 1000 catches, records/ties, redraws, cancel and touch guards passed");
 }

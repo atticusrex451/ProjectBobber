@@ -213,3 +213,30 @@ records, all three records reloading, page navigation/end boundaries/cancelled
 drags, and existing animation/touch checks. Page 2 was rendered and inspected
 through Bobber directly, not upstream --shot. Have Adam test paging and catch
 Spot at scale 1, then close/reopen to confirm all records are retained.
+
+
+## Complete regular Chincoteague roster (November 6)
+
+Added Weakfish, Striped Bass, Speckled Trout, Black Drum and Cobia to the existing
+flounder/croaker/Spot catch pool. All eight have equal provisional catch odds;
+no difficulty, bait, gear or fight mechanics were introduced. The Old Man of the
+Mud remains a separate boss milestone, and other regions remain unimplemented.
+
+Provisional gameplay weight ranges: Weakfish 8 oz–8 lb, Striped Bass 1–30 lb,
+Speckled Trout 8 oz–10 lb, Black Drum 1–50 lb, Cobia 2–60 lb. These are tuning
+values, not biological limits. New records use independent ESP32-compatible keys;
+all three existing keys/ranges are unchanged. No save reset or migration needed.
+
+New original profiles distinguish weakfish flecks/yellow fins, bass stripes,
+seatrout spots, drum bars/deeper body, and cobia's slim body/lateral band. The
+same scaled profiles appear as colored trophies or undiscovered silhouettes.
+The bay trophy wall now has four pages with two fish each.
+
+Validation: emulator build and Bobber suite pass, exercising 1,000 catches across
+all eight species, independent weights/records and reloads, four-page boundaries,
+cancelled gestures, distinct discovered portraits, invalid new records and
+partial-save retry while preserving older records. Catch-screen artwork and
+mixed discovered/undiscovered trophy pages were rendered directly through Bobber
+for inspection, without upstream --shot. Hardware remains untested. Have Adam
+check catches and four journal pages at scale 1, then close/reopen normally to
+confirm existing and new records persist. Environment configuration was unchanged.

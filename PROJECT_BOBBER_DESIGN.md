@@ -191,14 +191,14 @@ Boss anatomy, weight, bait recipe and final encounter remain open.
 ## Current milestone and next decisions
 
 Implemented prototype: separate static title screen with PLAY and a fishing
-screen headed CHINCOTEAGUE BAY, flounder, croaker and Spot, cast/wait/hook/repeat, weights,
+screen headed CHINCOTEAGUE BAY, all eight regular Chincoteague species, cast/wait/hook/repeat, weights,
 persistent species-specific personal bests shown on ready/catch screens, and a session catch
 counter on fishing screens. The journal is a regional trophy wall, two entries per page: colored miniature fish portraits
 for caught species, gray silhouettes for uncaught species, names and bests
 (or “Not caught yet”) underneath. Existing species records unlock the artwork.
 It is accessible from ready with BACK navigation. Each environment must show only its own roster while retaining other areas’
-records. Chincoteague currently has two pages for three implemented species.
-Travel, quests, lifetime totals, variants and the remaining species are not
+records. Chincoteague has four pages for eight implemented species.
+Travel, quests, lifetime totals, variants, bosses and other regions are not
 implemented. Ready/waiting/bite now have an original
 pixel scene with a fisherman, boat, marshes, sky, water and small float. The
 title retains its large bobber; catch reveal shows the landed species. Gentle float
@@ -208,7 +208,7 @@ Adam confirmed the counter works and the best survives restarting the laptop
 emulator at scale 1. The current screen layout is temporary.
 
 This document describes the larger design; the implemented subset is listed
-above. Next have Adam verify Spot, regional paging, and persistence on the laptop,
+above. Next have Adam verify the complete bay roster, four-page trophy wall, and persistence on the laptop,
 then choose the next small milestone together.
 Do not implement all these systems at once. Revisit recipe rules, fight tuning,
 economy, daily rotation and endgame rewards when their milestones arrive.
