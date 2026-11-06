@@ -67,15 +67,19 @@ No gear destruction or escalating punishment loop.
 ## Collection, value and progression
 
 Two main areas and one secret area: Chincoteague Bay, Blue Mountain Lake, then
-Captain Thurl's Grotto. Working roster: eight species plus one boss in each,
-24 regular species and three bosses total. Finish Chincoteague before building
-all destinations; this is a scope target, not a promise to implement everything
-in one milestone.
+Captain Thurl's Grotto. Roster: eight regular species plus one legend in each,
+24 regular species and three legends total. All three areas and their rosters
+are now implemented in the prototype; the shop and fight systems remain future work.
 
-Each main area's goal is to discover its eight base species, prepare special
-bait, and catch its legend. Proposed order: Old Man unlocks Blue Mountain Lake;
-both main legends lead to the grotto. Exact unlock narrative is open. Two pieces
-of an old chart were suggested as a possible way to reveal the grotto.
+Confirmed progression (November 6): discover all eight regular species in a biome
+before its legend becomes available. Land the Old Man to unlock Blue Mountain
+Lake; land both main-area legends to unlock Captain Thurl's Grotto. These gates
+are implemented using retained species records. A biome's fifth journal page
+shows discovery progress and enables SEEK LEGEND once all eight are discovered.
+Legends never appear in ordinary casts. They currently use the simple patient
+wait/hook/land loop; special bait requirements and distinctive fights are future
+shop/combat milestones. Exact unlock narrative is open. Two pieces of an old
+chart remain a possible presentation for revealing the grotto.
 
 Adam proposed using all an area's base fish to make boss bait. Working alternative:
 discovering all eight unlocks the recipe, but consume a few common catches so a
@@ -190,25 +194,30 @@ Boss anatomy, weight, bait recipe and final encounter remain open.
 
 ## Current milestone and next decisions
 
-Implemented prototype: separate static title screen with PLAY and a fishing
-screen headed CHINCOTEAGUE BAY, all eight regular Chincoteague species, cast/wait/hook/repeat, weights,
-persistent species-specific personal bests shown on ready/catch screens, and a session catch
-counter on fishing screens. The journal is a regional trophy wall, two entries per page: colored miniature fish portraits
-for caught species, gray silhouettes for uncaught species, names and bests
-(or “Not caught yet”) underneath. Existing species records unlock the artwork.
-It is accessible from ready with BACK navigation. Each environment must show only its own roster while retaining other areas’
-records. Chincoteague has four pages for eight implemented species.
-Travel, quests, lifetime totals, variants, bosses and other regions are not
-implemented. Ready/waiting/bite now have an original
-pixel scene with a fisherman, boat, marshes, sky, water and small float. The
-title retains its large bobber; catch reveal shows the landed species. Gentle float
-bobbing and shifting water ripples animate the fishing scene. Bite markers stay
-steady with a lowered float; title and catch reveal remain static.
-Adam confirmed the counter works and the best survives restarting the laptop
-emulator at scale 1. The current screen layout is temporary.
+Implemented: Chincoteague Bay, Blue Mountain Lake and Captain Thurl's Grotto,
+each with eight regular species, its own scenery and five-page regional trophy
+wall (four paired regular pages and a legend page). All 24 regular fish and three
+legends have simple original placeholder portraits, per-species gameplay weight
+ranges, and independent persistent personal bests. Existing bay records/keys
+remain compatible. Travel is available while ready to cast and retains the last
+visited unlocked area; all areas' fish records survive travel and reloads.
 
-This document describes the larger design; the implemented subset is listed
-above. Next have Adam verify the complete bay roster, four-page trophy wall, and persistence on the laptop,
-then choose the next small milestone together.
-Do not implement all these systems at once. Revisit recipe rules, fight tuning,
-economy, daily rotation and endgame rewards when their milestones arrive.
+Discover all eight local species to seek that area's legend. The Old Man opens
+the lake; both main-area legends open the grotto. The boss encounters currently
+use the same wait/hook/land loop as ordinary fish. Ordinary casts have equal
+provisional chances among the current region's eight regular fish. No special
+bait, inventory consumption, tension fights, shop, coins, quests, lifetime totals,
+variants, ending rewards, or calendar systems are implemented yet.
+
+The static title retains its large bobber. Fishing scenes share a seated angler
+and gentle water/float animation, with marshes in the bay, mountains/forest/mist
+at the lake, and an ivy-fringed cave and treasure in Thurl's Grotto. Artwork and
+layout are intentionally provisional: Adam plans a substantial visual redesign.
+Do not spend a large milestone polishing these placeholders before that direction
+is agreed. Hardware remains untested; emulator checks cannot establish physical
+touch/display behavior.
+
+Next: playtest travel, regional collections, all-eight discovery gates, legend
+catches and save/reload. Then design the bait and tackle shop, including special
+bait recipes and economy; do not silently consume a discovered fish or reset a
+record when preparing bait. Keep the relaxed tone and patient bite prompt.

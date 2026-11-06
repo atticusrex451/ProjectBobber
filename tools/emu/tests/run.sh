@@ -88,7 +88,7 @@ for src in "$HERE"/*_test.cpp; do
   srcs=("${CORE[@]}")
   standalone "$name" && srcs=("$ROOT/gbsynth.cpp")
   # Bobber directly exercises its header with the emulator canvas.
-  if [ "$name" = bobber_test ]; then srcs=(); extra=("$EMU/font.cpp"); fi
+  if [[ "$name" == bobber*_test ]]; then srcs=(); extra=("$EMU/font.cpp"); fi
   # every test starts from a clean NVS so one cannot leak state into the next
   rm -f "$OUT/tamapoke.nvs"
   if ! g++ "${FLAGS[@]}" -o "$OUT/$name" "$src" "${srcs[@]}" "${extra[@]}" 2>"$OUT/$name.log"; then

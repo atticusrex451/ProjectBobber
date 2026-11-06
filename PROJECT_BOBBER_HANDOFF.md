@@ -240,3 +240,59 @@ mixed discovered/undiscovered trophy pages were rendered directly through Bobber
 for inspection, without upstream --shot. Hardware remains untested. Have Adam
 check catches and four journal pages at scale 1, then close/reopen normally to
 confirm existing and new records persist. Environment configuration was unchanged.
+
+
+## All biomes, fish and collection gates (November 6)
+
+Adam authorized completing the remaining biomes/rosters together before the bait
+and tackle shop. He clarified the key rule: catch every regular fish in a biome
+before its boss becomes available. All three biomes now contain eight regular
+fish plus one legend (24 + 3 total), following PROJECT_BOBBER_DESIGN.md. No new
+areas or species outside that roster were introduced. Artwork is intentionally
+simple and temporary; Adam plans a substantial visual style/art revision.
+
+Blue Mountain Lake: Yellow Perch, Pumpkinseed Sunfish, Brook Trout, Largemouth
+Bass, Rainbow Trout, Brown Trout, Lake Trout, Muskellunge; Summit Leviathan.
+Captain Thurl's Grotto: Doubloon Darter, Barnacle-Back Goby, Copper-Gill Flounder,
+Rum-Barrel Drum, Cutlass Snapper, Gilded Sea Raven, Jeweled Coral-Prowler,
+Black-Powder Eel; Sovereign Iron-Maw. Chincoteague gains the Old Man of the Mud.
+
+READY now has separate JOURNAL and TRAVEL buttons above CAST. Travel lists the
+three shores with discovery counts and lock hints. Land the Old Man to unlock
+the lake; land both main-area legends to unlock the grotto. Locked rows do not
+activate. Travel resets the displayed species to the destination's first fish,
+without resetting any records or the session total. The selected unlocked area
+uses a separate bobberRegion byte; failed writes retain the live choice and retry
+on another travel/catch, with an on-screen warning. Invalid/locked saved area IDs
+fall back to the bay. Existing record IDs, keys and bounds are unchanged.
+
+Each regional journal has five pages: four paired regular-fish pages followed by
+a legend page showing discovery progress. SEEK LEGEND activates only after all
+eight local fish are discovered. It starts a cancellable three-second wait and
+patient bite. Hooking lands that region's legend; ordinary casts never include
+legends. The next ordinary recast clears the legend flag. These encounters use
+the existing simple hook/land interaction for now, without special bait or fights.
+The shop, bait consumption and combat/tension tuning remain separate milestones.
+
+Species metadata (including provisional gameplay ounce ranges) is now in
+bobber_species.h; simple new profiles live in bobber_fish_art.h. Lake scenery uses
+mountains, forest and mist; the grotto uses an ivy-fringed cave and old treasure.
+The existing angler/boat and eight-frame gentle float/ripple cycle are retained.
+
+Validation: emulator builds; both Bobber suites pass. Existing bay regression
+suite covers 1,000 catches/touch/persistence cases. New world suite plays 1,500
+local catches and all three legends through the real touch/state handlers,
+checks the seven-versus-eight discovery boundary, region locks, cancellation,
+no cross-region catches, all 27 records/reloads, travel save failure/retry,
+invalid/locked saved destinations, distinct portraits and scene-only animation.
+Direct Bobber renders of the three scenes, region journals, legend pages, travel
+and all new catch portraits were inspected; these are not upstream --shot images.
+A scale-1 emulator launch reached firmware startup and closed on the five-second
+timeout using a disposable save. AddressSanitizer/UndefinedBehaviorSanitizer
+world checks passed with leak detection disabled because LeakSanitizer is
+unsupported under this environment's process tracing. No hardware or physical
+touchscreen checks. Existing saves were not altered by the tests. Environment scripts/settings and publication remain unchanged.
+
+Next: Adam's playtest, then agree the bait/tackle shop inventory, recipes, prices
+and gear benefits. Preserve the all-eight discovery requirement when adding bait;
+records represent discoveries and must not be consumed as inventory.

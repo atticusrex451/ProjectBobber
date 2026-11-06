@@ -50,13 +50,13 @@ int main() {
     updateBobberFishing(&canvas, now);
   assert(canvas.fb == initialFrame); // eight gentle frames form a loop
   const auto journalSeed = g_seed;
-  updateBobberTouch(&canvas, true, 233, 324);
+  updateBobberTouch(&canvas, true, 161, 324);
   updateBobberTouch(&canvas, true, 233, 400);
   updateBobberTouch(&canvas, false, 233, 400);
   assert(bobberState == BOBBER_READY); // dragging to CAST cannot activate either
-  updateBobberTouch(&canvas, true, 233, 324);
+  updateBobberTouch(&canvas, true, 161, 324);
   assert(bobberState == BOBBER_READY);
-  updateBobberTouch(&canvas, false, 233, 324);
+  updateBobberTouch(&canvas, false, 161, 324);
   assert(bobberState == BOBBER_JOURNAL);
   auto pageTap = [&](int x) {
     updateBobberTouch(&canvas, true, x, 398);
@@ -152,10 +152,10 @@ int main() {
   assert(bobberBests[BOBBER_CROAKER] == savedCroaker && savedCroaker > 0);
   assert(bobberBests[BOBBER_SPOT] == savedSpot && savedSpot > 0);
   assert(bobberSessionCatches == 0);
-  assert(BOBBER_BAY_COUNT == 8 && BOBBER_JOURNAL_PAGES == 4);
+  assert(BOBBER_REGULAR_COUNT == 8 && BOBBER_JOURNAL_PAGES == 5);
   for (int i = 0; i < BOBBER_SPECIES_COUNT; ++i) {
-    assert(catches[i] > 0);
-    assert(bobberBests[i] == allSaved[i] && bobberBests[i] > 0);
+    assert((catches[i] > 0) == (i < BOBBER_REGULAR_COUNT));
+    assert(bobberBests[i] == allSaved[i]);
     assert(strlen(bobberRecordKeys[i]) <= 15); // ESP32 Preferences key limit
     for (int j = 0; j < i; ++j)
       assert(strcmp(bobberRecordKeys[i], bobberRecordKeys[j]) != 0);
@@ -221,7 +221,7 @@ int main() {
   assert(bobberBests[BOBBER_FLOUNDER] == 100);
   assert(bobberBests[BOBBER_CROAKER] == savedCroaker);
   assert(bobberBests[BOBBER_SPOT] == savedSpot);
-  puts("Bobber: eight species, four pages, distinct portraits and partial-save recovery passed");
+  puts("Bobber: bay roster, five pages, distinct portraits and partial-save recovery passed");
   puts("Bobber persistence: reload, invalid data, failed writes/retry, upstream isolation passed");
   puts("Bobber: 1000 catches, records/ties, redraws, cancel and touch guards passed");
 }
