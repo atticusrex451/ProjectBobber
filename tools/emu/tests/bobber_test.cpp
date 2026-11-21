@@ -45,11 +45,19 @@ int main() {
   assert(bobberBests[bobberSpecies] == 0 && bobberSessionCatches == 0);
   // Only the scene changes; labels and controls remain untouched.
   for (int y = 0; y < 466; ++y) for (int x = 0; x < 466; ++x)
-    if (x < 73 || x >= 393 || y < 145 || y >= 295)
+    if (x < 2 * BOBBER_BAY_PATCH_X || x >= 2 * BOBBER_BAY_PATCH_RIGHT ||
+        y < 2 * BOBBER_BAY_PATCH_Y || y >= 2 * BOBBER_BAY_PATCH_BOTTOM)
       assert(canvas.fb[y * 466 + x] == initialFrame[y * 466 + x]);
   for (uint32_t now = 300; now <= 1200; now += 150)
     updateBobberFishing(&canvas, now);
   assert(canvas.fb == initialFrame); // eight gentle frames form a loop
+  Arduino_Canvas fresh(466, 466, nullptr);
+  for (uint32_t frame = 9; frame <= 64; ++frame) {
+    updateBobberFishing(&canvas, frame * 150);
+    renderBobberWelcome(&fresh);
+    assert(canvas.fb == fresh.fb); // no trails when the tern flies across the patch
+  }
+  assert(canvas.fb == initialFrame);
   const auto journalSeed = g_seed;
   updateBobberTouch(&canvas, true, 161, 324);
   updateBobberTouch(&canvas, true, 233, 400);

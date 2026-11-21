@@ -2,6 +2,19 @@
 
 Updated November 21, 2026. The earlier sections below record historical milestones.
 
+## Chincoteague art pass
+
+The Bay now has an original, AI-assisted marsh painting, a smaller animated
+skiff, broken reflections, and a hand-drawn Summer Flounder portrait shared
+with the trophy wall. The Bay stays visible during fights. Art uses a 233 × 233
+pixel grid at 2× scale, with native-resolution text and touch controls. Lake
+and Grotto are still on their earlier artwork.
+
+The editable indexed painting is `tools/bobber/chincoteague.png`. After
+editing it, run `python3 tools/bobber/pack_bay_art.py` with Pillow to regenerate
+`bobber_bay_background.h`. Normal firmware and emulator builds use the packed
+header and don't require Pillow or an SD card.
+
 ## Current milestone
 
 The full story loop is playable. From READY, open DOCK → SHOP → SUPPLIES for

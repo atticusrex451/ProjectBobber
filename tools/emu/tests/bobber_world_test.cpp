@@ -107,8 +107,12 @@ int main() {
     const auto animationSeed = g_seed;
     updateBobberFishing(&canvas, 150);
     assert(canvas.fb != still && g_seed == animationSeed && bobberState == BOBBER_READY);
+    const int x0 = r == BOBBER_BAY ? 2 * BOBBER_BAY_PATCH_X : 73;
+    const int y0 = r == BOBBER_BAY ? 2 * BOBBER_BAY_PATCH_Y : 145;
+    const int x1 = r == BOBBER_BAY ? 2 * BOBBER_BAY_PATCH_RIGHT : 393;
+    const int y1 = r == BOBBER_BAY ? 2 * BOBBER_BAY_PATCH_BOTTOM : 295;
     for (int y = 0; y < 466; ++y) for (int x = 0; x < 466; ++x)
-      if (x < 73 || x >= 393 || y < 145 || y >= 295)
+      if (x < x0 || x >= x1 || y < y0 || y >= y1)
         assert(canvas.fb[y * 466 + x] == still[y * 466 + x]);
     openLegend();
     tap(233, 326);
