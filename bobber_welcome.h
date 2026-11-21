@@ -11,11 +11,16 @@
 
 enum BobberState { BOBBER_TITLE, BOBBER_JOURNAL, BOBBER_TRAVEL, BOBBER_DOCK, BOBBER_COOLER, BOBBER_SHOP, BOBBER_SELL_FISH, BOBBER_CONFIRM,
                    BOBBER_READY, BOBBER_WAITING, BOBBER_BITE, BOBBER_CAUGHT, BOBBER_SUPPLIES, BOBBER_RECIPE,
-                   BOBBER_FIGHT, BOBBER_LOST, BOBBER_ENDING };
+                   BOBBER_FIGHT, BOBBER_LOST, BOBBER_ENDING, BOBBER_SHOP_INTRO };
 static BobberState bobberState = BOBBER_TITLE;
 static uint32_t bobberCastAt = 0;
 static uint32_t bobberAnimationAt = 0;
 static uint8_t bobberAnimationFrame = 0;
+static uint32_t bobberTitleAt = 0;
+static uint8_t bobberTitleFrame = 0;
+static uint32_t bobberShopIntroAt = 0;
+static bool bobberShopWelcomed = false;
+static constexpr uint32_t BOBBER_SHOP_INTRO_MS = 3300;
 // Whole ounces avoid rounding when displaying pounds and ounces.
 // The catch is session-only; the personal best is loaded from Bobber storage.
 static uint16_t bobberCatchOz = 0;
@@ -60,6 +65,9 @@ static void loadBobberRecord() {
   bobberState = BOBBER_TITLE;
   bobberAnimationAt = 0;
   bobberAnimationFrame = 0;
+  bobberTitleAt = millis();
+  bobberTitleFrame = 0;
+  bobberShopWelcomed = false;
   bobberRegion = bobberSavedRegion = BOBBER_BAY;
   bobberLegendCast = false;
   bobberFight = {};
@@ -268,13 +276,25 @@ static void drawBobberTrophy(Arduino_Canvas *canvas, BobberSpecies species,
 static void drawBobberTitleFloat(Arduino_Canvas *canvas) {
   constexpr uint16_t edge = 0x1968, green = 0xAFE4, glow = 0xD7EB;
   constexpr uint16_t orange = 0xEB24, shade = 0xAC43, band = 0xF7B9;
-  auto span = [canvas](int x, int y, int w, int h, uint16_t color) {
-    canvas->fillRect(233 + x * 4, 184 + y * 4, w * 4, h * 4, color);
+  const int frame = bobberTitleFrame;
+  static const int8_t drop[] = {-28,-26,-22,-16,-8,2,10,5,-1,-4,-2,0};
+  static const int8_t drift[] = {0,0,-2,-4,-4,-2,0,0,2,4,4,2};
+  const int offset = frame < 12 ? drop[frame] : drift[frame - 12];
+
+  // Rings spread along the water while the float dips and bobs independently.
+  const int ripple = frame < 5 ? 0 : frame < 12 ? (frame - 5) * 2 : drift[frame - 12] + 6;
+  canvas->fillRect(151 - ripple, 292, 45, 3, 0x6431);
+  canvas->fillRect(275 + ripple, 292, 45, 3, 0x6431);
+  canvas->fillRect(172 - ripple, 304, 120 + 2 * ripple, 2, 0x42ED);
+  canvas->fillRect(211, 311, 54, 2, 0x294C);
+  if (frame >= 5 && frame < 10) {
+    const int splash = frame - 5;
+    canvas->fillRect(187 - splash * 4, 281 - splash * 3, 4, 4, band);
+    canvas->fillRect(275 + splash * 4, 278 - splash * 2, 4, 4, band);
+  }
+  auto span = [canvas, offset](int x, int y, int w, int h, uint16_t color) {
+    canvas->fillRect(233 + x * 4, 184 + offset + y * 4, w * 4, h * 4, color);
   };
-  span(-21, 27, 12, 1, 0x6431);
-  span(11, 27, 11, 1, 0x6431);
-  span(-16, 30, 30, 1, 0x42ED);
-  span(-7, 32, 18, 1, 0x294C);
   span(-2, -2, 4, 8, edge);
   span(-1, -2, 2, 7, glow);
   static const int8_t halfWidth[] = {4,6,8,10,11,12,12,13,13,13,13,13,13,12,12,11,10,9,7,5};
@@ -302,6 +322,7 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
   if (fishing) drawBobberScene(canvas, true);
   else if (bobberState == BOBBER_CAUGHT || bobberState == BOBBER_ENDING)
     restoreBobberLandscape(canvas, 0, 0, 233, 233);
+  else if (bobberState == BOBBER_SHOP_INTRO) drawBobberShopBackdrop(canvas);
   else if (bobberState == BOBBER_TITLE)
     blitBobberLandscape(canvas, BOBBER_BAY, 0, 0, 233, 233, false);
   else blitBobberLandscape(canvas, bobberRegion, 0, 0, 233, 233, true);
@@ -595,6 +616,24 @@ static void bobberHookFish() {
 }
 
 static void updateBobberFishing(Arduino_Canvas *canvas, uint32_t now) {
+  if (bobberState == BOBBER_TITLE) {
+    const uint32_t age = now - bobberTitleAt;
+    const uint8_t frame = age < 960 ? age / 80 : 12 + (age - 960) / 120 % 12;
+    if (frame != bobberTitleFrame) {
+      bobberTitleFrame = frame;
+      blitBobberLandscape(canvas, BOBBER_BAY, 64, 74, 171, 157, false);
+      drawBobberTitleFloat(canvas);
+      canvas->flush();
+    }
+    return;
+  }
+  if (bobberState == BOBBER_SHOP_INTRO) {
+    if (now - bobberShopIntroAt >= BOBBER_SHOP_INTRO_MS) {
+      bobberState = BOBBER_SHOP;
+      renderBobberWelcome(canvas);
+    }
+    return;
+  }
   if (bobberState == BOBBER_FIGHT) {
     const uint32_t dt = now - bobberFight.at;
     if (dt < 50) return;

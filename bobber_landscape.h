@@ -3,6 +3,7 @@
 #include "bobber_bay_background.h"
 #include "bobber_lake_background.h"
 #include "bobber_grotto_background.h"
+#include "bobber_shop_background.h"
 
 // Half-resolution art writes directly to the landscape canvas. Repaint only
 // this patch during idle animation so headings and controls keep their pixels.
@@ -29,9 +30,8 @@ static constexpr BobberLandscape bobberLandscapes[] = {
   {bobberGrottoRows, bobberGrottoRuns, bobberGrottoPalette},
 };
 
-static void blitBobberLandscape(Arduino_Canvas *canvas, BobberRegion region,
-                                int left, int top, int right, int bottom, bool dim) {
-  const auto &art = bobberLandscapes[region];
+static void blitBobberArtwork(Arduino_Canvas *canvas, const BobberLandscape &art,
+                              int left, int top, int right, int bottom, bool dim) {
   constexpr int stride = 466;
   auto *pixels = canvas->getFramebuffer();
   for (int y = top; y < bottom; ++y) {
@@ -49,6 +49,16 @@ static void blitBobberLandscape(Arduino_Canvas *canvas, BobberRegion region,
       x = end;
     }
   }
+}
+
+static void blitBobberLandscape(Arduino_Canvas *canvas, BobberRegion region,
+                                int left, int top, int right, int bottom, bool dim) {
+  blitBobberArtwork(canvas, bobberLandscapes[region], left, top, right, bottom, dim);
+}
+
+static void drawBobberShopBackdrop(Arduino_Canvas *canvas) {
+  static constexpr BobberLandscape shop = {bobberShopRows, bobberShopRuns, bobberShopPalette};
+  blitBobberArtwork(canvas, shop, 0, 0, 233, 233, false);
 }
 
 static void restoreBobberLandscape(Arduino_Canvas *canvas, int left, int top, int right, int bottom) {

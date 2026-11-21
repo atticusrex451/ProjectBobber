@@ -46,8 +46,14 @@ int main() {
     sample(false, x, y);
   };
   assert(bobberState == BOBBER_TITLE);
+  const auto title = gfx->fb;
+  tick(480);
+  assert(bobberState == BOBBER_TITLE && gfx->fb != title);
+  for (int y = 314; y < 466; ++y)
+    for (int x = 0; x < 466; ++x) assert(gfx->fb[y * 466 + x] == title[y * 466 + x]);
   sample(true, 233, 400);
-  assert(bobberState == BOBBER_TITLE); // activation waits for release
+  tick(80);
+  assert(bobberState == BOBBER_TITLE); // PLAY works during the splash animation
   sample(false, 233, 400);
   assert(bobberState == BOBBER_READY);
   click(161, 326);
@@ -85,6 +91,13 @@ int main() {
   assert(bobberEconomy.fish[0].reserved);
   click(233, 400); // dock
   click(233, 234); // shop
+  assert(bobberState == BOBBER_SHOP_INTRO);
+  sample(true, 233, 400);
+  tick(BOBBER_SHOP_INTRO_MS - 1);
+  assert(bobberState == BOBBER_SHOP_INTRO);
+  tick(1);
+  sample(false, 233, 400);
+  assert(bobberState == BOBBER_SHOP); // timed intro, release cannot hit the new BACK
   click(233, 166); // sell fish
   assert(bobberState == BOBBER_SELL_FISH);
   click(161, 302); // unreserve
@@ -93,6 +106,10 @@ int main() {
   const auto quote = bobberSaleQuote(0);
   click(233, 400); // confirm sale through real touch release
   assert(!bobberEconomy.count && bobberEconomy.coins == quote);
+  click(233, 400); // shop
+  click(233, 400); // dock
+  click(233, 234);
+  assert(bobberState == BOBBER_SHOP); // only once per session
   puts("Bobber firmware economy input: auto-keep, dock/cooler/shop, reservation and sale confirmation passed");
   puts("Bobber firmware input: PLAY, journal, paging, travel, cast/cancel and drag-off passed");
 
@@ -103,10 +120,15 @@ int main() {
   setup();
   g_seed = 92;
   auto mainTap = [&]() { click(233, 400); };
+  auto enterShop = [&]() {
+    click(233, 234);
+    if (bobberState == BOBBER_SHOP_INTRO) mainTap();
+    assert(bobberState == BOBBER_SHOP);
+  };
   auto openSupplies = [&]() {
     assert(bobberState == BOBBER_READY);
     click(302, 326);
-    click(233, 234);
+    enterShop();
     click(233, 303);
     assert(bobberState == BOBBER_SUPPLIES);
   };
@@ -141,7 +163,7 @@ int main() {
       click(349, 398);
     }
     mainTap();
-    click(233, 234);
+    enterShop();
     const uint32_t quote = bobberSaleQuote(-1);
     assert(quote);
     const uint32_t wallet = bobberEconomy.coins;

@@ -9,9 +9,10 @@ from pathlib import Path
 from PIL import Image
 
 parser = ArgumentParser(description=__doc__)
-parser.add_argument("region", choices=("bay", "lake", "grotto"))
+parser.add_argument("region", choices=("bay", "lake", "grotto", "shop"))
 region = parser.parse_args().region
-sources = {"bay": "chincoteague.png", "lake": "blue-mountain-lake.png", "grotto": "thurls-grotto.png"}
+sources = {"bay": "chincoteague.png", "lake": "blue-mountain-lake.png", "grotto": "thurls-grotto.png",
+           "shop": "tackle-shop.png"}
 source = Path(__file__).with_name(sources[region])
 output = Path(__file__).resolve().parents[2] / f"bobber_{region}_background.h"
 prefix = f"bobber{region.title()}"

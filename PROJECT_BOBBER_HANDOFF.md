@@ -51,6 +51,17 @@ behind dark panels. Travel cards show miniature paintings for unlocked
 destinations. Fishing, fight and menu screens share the same button styling
 and retain their existing touch targets.
 
+## Boot and tackle-shop introductions
+
+The title bobber drops, splashes, and settles into a gentle loop. PLAY works
+during the animation. The first shop visit per session shows the keeper in
+the tackle-shop interior. Tap SHOP or wait about three seconds to enter.
+The opening title is still Project Bobber.
+
+The editable shop painting is `tools/bobber/tackle-shop.png`. Regenerate the
+interior and keeper with `python3 tools/bobber/pack_landscape.py shop` and
+`python3 tools/bobber/paint_shopkeeper.py` in a Pillow environment.
+
 ## Current milestone
 
 The full story loop is playable. From READY, open DOCK → SHOP → SUPPLIES for

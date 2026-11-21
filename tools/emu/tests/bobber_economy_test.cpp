@@ -71,6 +71,8 @@ int main() {
   mainTap();
   assert(bobberState == BOBBER_DOCK);
   tap(233, 234);
+  assert(bobberState == BOBBER_SHOP_INTRO);
+  mainTap();
   assert(bobberState == BOBBER_SHOP);
   tap(233, 166);
   assert(bobberState == BOBBER_SELL_FISH && bobberCoolerPage == 0);

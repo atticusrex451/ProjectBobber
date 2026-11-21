@@ -1,5 +1,7 @@
 #pragma once
 
+#include "bobber_shopkeeper_art.h"
+
 static constexpr uint16_t BOBBER_CREAM = 0xF7B9;
 static constexpr uint16_t BOBBER_INK = 0x08E4;
 static constexpr uint16_t BOBBER_BRASS = 0xCD69;
@@ -97,7 +99,12 @@ static int bobberShopTouchTarget(int16_t x, int16_t y) {
 }
 static bool handleBobberShopTouch(int target) {
   if (target == 30) { bobberCoolerPage = 0; bobberState = BOBBER_COOLER; }
-  else if (target == 31) bobberState = BOBBER_SHOP;
+  else if (target == 31) {
+    bobberState = bobberShopWelcomed ? BOBBER_SHOP : BOBBER_SHOP_INTRO;
+    bobberShopWelcomed = true;
+    bobberShopIntroAt = millis();
+  }
+  else if (target == 1 && bobberState == BOBBER_SHOP_INTRO) bobberState = BOBBER_SHOP;
   else if (target == 32) bobberState = BOBBER_TRAVEL;
   else if (target == 33) { bobberCoolerPage = 0; bobberState = BOBBER_SELL_FISH; }
   else if (target == 34 || target == 36) {
@@ -136,7 +143,23 @@ static bool handleBobberShopTouch(int target) {
   else return false;
   return true;
 }
+static void renderBobberShopIntro(Arduino_Canvas *canvas) {
+  bobberHeading(canvas, "BAIT & TACKLE", 58);
+  for (const auto &span : bobberShopkeeper)
+    canvas->fillRect(158 + 3 * span.x, 142 + 3 * span.y, 3 * span.width, 3, span.color);
+  bobberPanel(canvas, 83, 321, 300, 37, BOBBER_BRASS);
+  canvas->setTextColor(BOBBER_CREAM);
+  bobberShopText(canvas, "Fish stories are free.", 332, 2);
+  bobberPrimaryButton(canvas, "SHOP");
+  canvas->setTextSize(1);
+  canvas->flush();
+}
+
 static bool renderBobberShop(Arduino_Canvas *canvas) {
+  if (bobberState == BOBBER_SHOP_INTRO) {
+    renderBobberShopIntro(canvas);
+    return true;
+  }
   if (bobberState != BOBBER_DOCK && bobberState != BOBBER_COOLER &&
       bobberState != BOBBER_SHOP && bobberState != BOBBER_SELL_FISH && bobberState != BOBBER_CONFIRM &&
       bobberState != BOBBER_SUPPLIES && bobberState != BOBBER_RECIPE) return false;
