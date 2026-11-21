@@ -9,16 +9,27 @@ skiff, broken reflections, and a hand-drawn Summer Flounder portrait shared
 with the trophy wall. Its seven neighbors and the Old Man of the Mud now use
 the same pixel scale and catch card, with species-specific shapes and markings.
 Their silhouettes, trophy wall entries and cooler portraits use the same art.
-The Bay stays visible during fights. Art uses a 233 × 233
-pixel grid at 2× scale, with native-resolution text and touch controls. Lake
-and Grotto are still on their earlier artwork.
+The Bay stays visible during fights. Art uses a 233 × 233 pixel grid at 2×
+scale, with native-resolution text and touch controls. Blue Mountain Lake
+shares the same renderer. Captain Thurl’s Grotto uses its earlier artwork.
 
 The editable indexed painting is `tools/bobber/chincoteague.png`. After
-editing it, run `python3 tools/bobber/pack_bay_art.py` with Pillow to regenerate
+editing it, run `python3 tools/bobber/pack_landscape.py bay` with Pillow to regenerate
 `bobber_bay_background.h`. Normal firmware and emulator builds use the packed
 header and don't require Pillow or an SD card. Run
 `python3 tools/bobber/paint_bay_fish.py` with Pillow after editing the seven
 regular portraits or the Old Man to regenerate `bobber_bay_portraits.h`.
+
+## Blue Mountain Lake art pass
+
+The lake has an original, AI-assisted mountain landscape with mist, layered
+ridges and cool reflections. A loon occasionally crosses the water. The
+backdrop stays visible during fights and gives the eight lake species and the
+Summit Leviathan a shared catch card. Each portrait also has a trophy silhouette.
+
+The editable painting is `tools/bobber/blue-mountain-lake.png`. Regenerate
+assets with `python3 tools/bobber/pack_landscape.py lake` and
+`python3 tools/bobber/paint_lake_fish.py` in a Pillow environment.
 
 ## Current milestone
 

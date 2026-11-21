@@ -45,8 +45,8 @@ int main() {
   assert(bobberBests[bobberSpecies] == 0 && bobberSessionCatches == 0);
   // Only the scene changes; labels and controls remain untouched.
   for (int y = 0; y < 466; ++y) for (int x = 0; x < 466; ++x)
-    if (x < 2 * BOBBER_BAY_PATCH_X || x >= 2 * BOBBER_BAY_PATCH_RIGHT ||
-        y < 2 * BOBBER_BAY_PATCH_Y || y >= 2 * BOBBER_BAY_PATCH_BOTTOM)
+    if (x < 2 * BOBBER_LANDSCAPE_PATCH_X || x >= 2 * BOBBER_LANDSCAPE_PATCH_RIGHT ||
+        y < 2 * BOBBER_LANDSCAPE_PATCH_Y || y >= 2 * BOBBER_LANDSCAPE_PATCH_BOTTOM)
       assert(canvas.fb[y * 466 + x] == initialFrame[y * 466 + x]);
   for (uint32_t now = 300; now <= 1200; now += 150)
     updateBobberFishing(&canvas, now);

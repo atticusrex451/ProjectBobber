@@ -52,7 +52,7 @@ static bool bobberRegionUnlocked(BobberRegion region) {
 
 #include "bobber_progression.h"
 #include "bobber_fight.h"
-#include "bobber_bay_art.h"
+#include "bobber_landscape.h"
 
 static void loadBobberRecord() {
   loadBobberEconomy();
@@ -214,10 +214,10 @@ static void drawBobberFlounder(Arduino_Canvas *canvas, int centerY, int scale, b
 }
 
 #include "bobber_fish_art.h"
-#include "bobber_bay_portraits.h"
+#include "bobber_lake_portraits.h"
 
-static bool bobberHasBayPortrait(BobberSpecies species) {
-  return species < BOBBER_YELLOW_PERCH || species == BOBBER_OLD_MAN;
+static bool bobberHasPaintedPortrait(BobberSpecies species) {
+  return species <= BOBBER_MUSKELLUNGE || species == BOBBER_OLD_MAN || species == BOBBER_LEVIATHAN;
 }
 
 template <size_t N>
@@ -228,7 +228,7 @@ static void drawBobberPortraitSpans(Arduino_Canvas *canvas, const BobberPortrait
                      span.width * scale, scale, caught ? span.color : 0x4A69);
 }
 
-static void drawBobberBayPortrait(Arduino_Canvas *canvas, BobberSpecies species,
+static void drawBobberPaintedPortrait(Arduino_Canvas *canvas, BobberSpecies species,
                                   int centerY, int scale, bool caught) {
   switch (species) {
     case BOBBER_FLOUNDER: drawBobberFlounder(canvas, centerY, scale, caught); break;
@@ -240,63 +240,50 @@ static void drawBobberBayPortrait(Arduino_Canvas *canvas, BobberSpecies species,
     case BOBBER_BLACK_DRUM: drawBobberPortraitSpans(canvas, bobberBlackDrumPortrait, centerY, scale, caught); break;
     case BOBBER_COBIA: drawBobberPortraitSpans(canvas, bobberCobiaPortrait, centerY, scale, caught); break;
     case BOBBER_OLD_MAN: drawBobberPortraitSpans(canvas, bobberOldManPortrait, centerY, scale, caught); break;
+    case BOBBER_YELLOW_PERCH: drawBobberPortraitSpans(canvas, bobberPerchPortrait, centerY, scale, caught); break;
+    case BOBBER_PUMPKINSEED: drawBobberPortraitSpans(canvas, bobberPumpkinseedPortrait, centerY, scale, caught); break;
+    case BOBBER_BROOK_TROUT: drawBobberPortraitSpans(canvas, bobberBrookTroutPortrait, centerY, scale, caught); break;
+    case BOBBER_LARGEMOUTH_BASS: drawBobberPortraitSpans(canvas, bobberLargemouthPortrait, centerY, scale, caught); break;
+    case BOBBER_RAINBOW_TROUT: drawBobberPortraitSpans(canvas, bobberRainbowPortrait, centerY, scale, caught); break;
+    case BOBBER_BROWN_TROUT: drawBobberPortraitSpans(canvas, bobberBrownTroutPortrait, centerY, scale, caught); break;
+    case BOBBER_LAKE_TROUT: drawBobberPortraitSpans(canvas, bobberLakeTroutPortrait, centerY, scale, caught); break;
+    case BOBBER_MUSKELLUNGE: drawBobberPortraitSpans(canvas, bobberMuskiePortrait, centerY, scale, caught); break;
+    case BOBBER_LEVIATHAN: drawBobberPortraitSpans(canvas, bobberLeviathanPortrait, centerY, scale, caught); break;
     default: break;
   }
 }
 
 static void drawBobberTrophy(Arduino_Canvas *canvas, BobberSpecies species,
                               int centerY, bool caught) {
-  if (bobberHasBayPortrait(species)) drawBobberBayPortrait(canvas, species, centerY, 1, caught);
+  if (bobberHasPaintedPortrait(species)) drawBobberPaintedPortrait(canvas, species, centerY, 1, caught);
   else drawBobberOtherFish(canvas, species, centerY, 2, caught);
 }
 
 // Original pixel scene, animated in small steps without blocking touch.
 static void drawBobberScene(Arduino_Canvas *canvas, bool full = false) {
-  if (bobberRegion == BOBBER_BAY) {
-    drawBobberBayScene(canvas, full);
+  if (bobberHasPaintedWater(bobberRegion)) {
+    drawBobberPaintedScene(canvas, full);
     return;
   }
-  const uint16_t sky = bobberRegion == BOBBER_GROTTO ? 0x318B :
-                       0xADDA;
-  const uint16_t cloud = bobberRegion == BOBBER_GROTTO ? 0x9E37 : 0xDF5B;
-  const uint16_t water = bobberRegion == BOBBER_GROTTO ? 0x19EB :
-                         0x3BB3;
-  const uint16_t dark = 0x1968;
+  const uint16_t sky = 0x318B, cloud = 0x9E37, water = 0x19EB, dark = 0x1968;
   const uint16_t wood = 0xA3E9, rim = 0xDE31, skin = 0xE5D1;
   canvas->fillRect(73, 145, 320, 150, sky);
-  if (bobberRegion == BOBBER_LAKE) {
-    // Cold peaks, snow caps, mist and evergreen banks.
-    canvas->fillTriangle(73, 208, 139, 151, 214, 208, 0x6C53);
-    canvas->fillTriangle(176, 208, 269, 146, 365, 208, 0x8497);
-    canvas->fillTriangle(123, 165, 139, 151, 155, 165, cloud);
-    canvas->fillTriangle(248, 160, 269, 146, 291, 160, cloud);
-    canvas->fillRect(73, 202, 320, 93, water);
-    canvas->fillRect(81, 191, 93, 3, cloud);
-    canvas->fillRect(286, 185, 98, 3, cloud);
-    for (int x = 77; x < 143; x += 16) {
-      canvas->fillRect(x + 6, 184, 4, 25, wood);
-      canvas->fillTriangle(x, 200, x + 8, 169 + x % 7, x + 16, 200, 0x2308);
-    }
-    for (int x = 337; x < 379; x += 16)
-      canvas->fillTriangle(x, 210, x + 8, 176, x + 16, 210, 0x2308);
-  } else {
-    // Thurl's salt-ivy arch, mixed tidal pools and a hint of old treasure.
-    canvas->fillRect(73, 202, 320, 93, water);
-    canvas->fillRect(73, 145, 320, 12, 0x2128);
-    canvas->fillRect(73, 157, 34, 79, 0x420C);
-    canvas->fillRect(359, 157, 34, 79, 0x420C);
-    for (int x = 105; x < 359; x += 24) {
-      canvas->fillRect(x, 157, 20, 8 + (x % 5) * 3, 0x420C);
-      canvas->fillRect(x + 3, 157, 3, 18 + (x % 4) * 5, 0x43AD);
-    }
-    canvas->fillRect(78, 227, 45, 5, 0xAC6B);
-    canvas->fillRect(336, 256, 48, 5, 0x3D33);
-    canvas->fillRoundRect(344, 211, 31, 20, 3, wood);
-    canvas->drawRect(344, 219, 31, 12, 0xDDA9);
-    canvas->fillRect(357, 218, 5, 7, 0xFEC0);
-    canvas->fillCircle(335, 233, 3, 0xFEC0);
-    canvas->fillCircle(378, 237, 2, 0xFEC0);
+  // Thurl's salt-ivy arch, mixed tidal pools and a hint of old treasure.
+  canvas->fillRect(73, 202, 320, 93, water);
+  canvas->fillRect(73, 145, 320, 12, 0x2128);
+  canvas->fillRect(73, 157, 34, 79, 0x420C);
+  canvas->fillRect(359, 157, 34, 79, 0x420C);
+  for (int x = 105; x < 359; x += 24) {
+    canvas->fillRect(x, 157, 20, 8 + (x % 5) * 3, 0x420C);
+    canvas->fillRect(x + 3, 157, 3, 18 + (x % 4) * 5, 0x43AD);
   }
+  canvas->fillRect(78, 227, 45, 5, 0xAC6B);
+  canvas->fillRect(336, 256, 48, 5, 0x3D33);
+  canvas->fillRoundRect(344, 211, 31, 20, 3, wood);
+  canvas->drawRect(344, 219, 31, 12, 0xDDA9);
+  canvas->fillRect(357, 218, 5, 7, 0xFEC0);
+  canvas->fillCircle(335, 233, 3, 0xFEC0);
+  canvas->fillCircle(378, 237, 2, 0xFEC0);
   const int ripples[][3] = {
     {94, 225, 31}, {281, 218, 34}, {340, 243, 28},
     {104, 272, 41}, {259, 280, 38}, {192, 290, 24}
@@ -347,12 +334,12 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
   const uint16_t orange = 0xFB00;
   const uint16_t water = 0x2B8E;
 
-  const bool bayFishing = bobberRegion == BOBBER_BAY &&
+  const bool paintedFishing = bobberHasPaintedWater(bobberRegion) &&
                          (bobberState == BOBBER_READY || bobberState == BOBBER_WAITING ||
                           bobberState == BOBBER_BITE || bobberState == BOBBER_FIGHT);
-  const bool bayCatch = bobberState == BOBBER_CAUGHT && bobberHasBayPortrait(bobberSpecies);
-  if (bayFishing) drawBobberScene(canvas, true);
-  else if (bayCatch) restoreBobberBay(canvas, 0, 0, 233, 233);
+  const bool paintedCatch = bobberState == BOBBER_CAUGHT && bobberHasPaintedPortrait(bobberSpecies);
+  if (paintedFishing) drawBobberScene(canvas, true);
+  else if (paintedCatch) restoreBobberLandscape(canvas, 0, 0, 233, 233);
   else canvas->fillScreen(navy);
   canvas->setTextColor(cream);
   if (renderBobberShop(canvas)) return;
@@ -372,20 +359,20 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
       const auto &pattern = bobberFightPatterns[bobberFight.pattern];
       const bool danger = bobberFight.tension >= BOBBER_DANGER;
       bobberShopText(canvas, danger ? "LET THE LINE REST" :
-                             bobberHardPull() ? pattern.cue : "Steady water", bayFishing ? 112 : 132, 2);
-      const int tensionY = bayFishing ? 309 : 206;
-      const int progressY = bayFishing ? 345 : 279;
-      const int meterHeight = bayFishing ? 12 : 20;
-      bobberShopText(canvas, "LINE TENSION", tensionY - (bayFishing ? 13 : 27), bayFishing ? 1 : 2);
+                             bobberHardPull() ? pattern.cue : "Steady water", paintedFishing ? 112 : 132, 2);
+      const int tensionY = paintedFishing ? 309 : 206;
+      const int progressY = paintedFishing ? 345 : 279;
+      const int meterHeight = paintedFishing ? 12 : 20;
+      bobberShopText(canvas, "LINE TENSION", tensionY - (paintedFishing ? 13 : 27), paintedFishing ? 1 : 2);
       canvas->fillRoundRect(108, tensionY, 250, meterHeight, 4, 0x1946);
       const int tensionWidth = bobberFight.tension / 400;
       if (tensionWidth) canvas->fillRect(108, tensionY, tensionWidth, meterHeight, danger ? 0xF800 : orange);
       canvas->drawFastVLine(108 + BOBBER_DANGER / 400, tensionY - 3, meterHeight + 6, cream);
-      bobberShopText(canvas, "REEL PROGRESS", progressY - (bayFishing ? 13 : 27), bayFishing ? 1 : 2);
+      bobberShopText(canvas, "REEL PROGRESS", progressY - (paintedFishing ? 13 : 27), paintedFishing ? 1 : 2);
       canvas->fillRoundRect(108, progressY, 250, meterHeight, 4, 0x1946);
       const int progressWidth = bobberFight.progress * 250 / pattern.progressNeeded;
       if (progressWidth) canvas->fillRect(108, progressY, progressWidth, meterHeight, lime);
-      bobberShopText(canvas, "Hold to reel. Release to ease tension.", bayFishing ? 363 : 331);
+      bobberShopText(canvas, "Hold to reel. Release to ease tension.", paintedFishing ? 363 : 331);
     }
     bobberShopButton(canvas, 143, 376, 180,
                      bobberState == BOBBER_FIGHT ? (bobberFight.reeling ? "REELING" : "REEL") : "CONTINUE");
@@ -441,7 +428,7 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
     canvas->print(pageLabel);
     if (bobberJournalPage == 4) {
       const BobberSpecies legend = bobberLegends[bobberRegion];
-      if (bobberHasBayPortrait(legend)) drawBobberBayPortrait(canvas, legend, 192, 2, bobberBests[legend] != 0);
+      if (bobberHasPaintedPortrait(legend)) drawBobberPaintedPortrait(canvas, legend, 192, 2, bobberBests[legend] != 0);
       else drawBobberOtherFish(canvas, legend, 192, 1, bobberBests[legend] != 0);
       canvas->setTextSize(2);
       canvas->setCursor(233 - strlen(bobberNames[legend]) * 6, 251);
@@ -543,18 +530,18 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
     canvas->print("Travel not saved; retry");
   }
   // Water ripples and a two-tone float, kept inside the circular bezel.
-  if (!bayFishing && !bayCatch) {
+  if (!paintedFishing && !paintedCatch) {
     canvas->drawFastHLine(119, 283, 228, water);
     canvas->drawFastHLine(143, 294, 180, water);
   }
   if (bobberState == BOBBER_CAUGHT) {
-    if (bayCatch) {
+    if (paintedCatch) {
       canvas->fillRoundRect(62, 154, 342, 143, 14, 0x1948);
       canvas->drawFastHLine(86, 286, 294, 0x4B0F);
-      drawBobberBayPortrait(canvas, bobberSpecies, 222, 3, true);
+      drawBobberPaintedPortrait(canvas, bobberSpecies, 222, 3, true);
     } else drawBobberOtherFish(canvas, bobberSpecies, 232, 1, true);
   } else if (bobberState != BOBBER_TITLE) {
-    if (!bayFishing) drawBobberScene(canvas);
+    if (!paintedFishing) drawBobberScene(canvas);
   } else {
   canvas->fillRoundRect(225, 169, 16, 31, 7, lime);
   canvas->fillCircle(233, 238, 52, lime);
@@ -702,7 +689,7 @@ static void updateBobberFishing(Arduino_Canvas *canvas, uint32_t now) {
     const bool pull = bobberHardPull();
     const auto &pattern = bobberFightPatterns[bobberFight.pattern];
     bobberFight.elapsed += step;
-    if (bobberRegion == BOBBER_BAY) bobberAnimationFrame = bobberFight.elapsed / 150 % 8;
+    if (bobberHasPaintedWater(bobberRegion)) bobberAnimationFrame = bobberFight.elapsed / 150 % 8;
     if (bobberFight.reeling) {
       const int buildup = pull ? pattern.pullTension : 26;
       const int relief = bobberEconomy.tackle & BOBBER_STRONG_LINE ? 12 : 0;
@@ -732,7 +719,7 @@ static void updateBobberFishing(Arduino_Canvas *canvas, uint32_t now) {
   if ((bobberState == BOBBER_READY || bobberState == BOBBER_WAITING ||
        bobberState == BOBBER_BITE) && now - bobberAnimationAt >= 150) {
     bobberAnimationAt = now;
-    bobberAnimationFrame = (bobberAnimationFrame + 1) % (bobberRegion == BOBBER_BAY ? 64 : 8);
+    bobberAnimationFrame = (bobberAnimationFrame + 1) % (bobberHasPaintedWater(bobberRegion) ? 64 : 8);
     // Redraw only the scene rectangle, leaving labels and touch targets intact.
     drawBobberScene(canvas);
     canvas->flush();

@@ -1,14 +1,19 @@
-"""Pack the indexed Chincoteague painting for RGB565 firmware, using Pillow.
+"""Pack the indexed landscape for RGB565 firmware, using Pillow.
 
-Run from any directory: python3 tools/bobber/pack_bay_art.py
+Run from any directory: python3 tools/bobber/pack_landscape.py lake
 """
+from argparse import ArgumentParser
 from itertools import groupby
 from pathlib import Path
 
 from PIL import Image
 
-source = Path(__file__).with_name("chincoteague.png")
-output = Path(__file__).resolve().parents[2] / "bobber_bay_background.h"
+parser = ArgumentParser(description=__doc__)
+parser.add_argument("region", choices=("bay", "lake"))
+region = parser.parse_args().region
+source = Path(__file__).with_name({"bay": "chincoteague.png", "lake": "blue-mountain-lake.png"}[region])
+output = Path(__file__).resolve().parents[2] / f"bobber_{region}_background.h"
+prefix = f"bobber{region.title()}"
 with Image.open(source) as painting:
     assert painting.mode == "P" and painting.size == (233, 233)
     pixels = list(painting.tobytes())
@@ -36,8 +41,8 @@ def array(name, values):
     return "\n".join(lines + ["};", ""])
 
 output.write_text(
-    "#pragma once\n\n// Generated from tools/bobber/chincoteague.png by pack_bay_art.py.\n"
-    + array("bobberBayPalette", palette565)
-    + array("bobberBayRows", rows)
-    + array("bobberBayRuns", runs)
+    f"#pragma once\n\n// Generated from tools/bobber/{source.name} by pack_landscape.py.\n"
+    + array(prefix + "Palette", palette565)
+    + array(prefix + "Rows", rows)
+    + array(prefix + "Runs", runs)
 )
