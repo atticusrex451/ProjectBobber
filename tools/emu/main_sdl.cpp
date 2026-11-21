@@ -139,37 +139,6 @@ String FakeSerial::readStringUntil(char) {
   return s;
 }
 
-// --- NVS persistence ---
-void nvsLoad(const char *path) {
-  FILE *f = fopen(path, "rb");
-  if (!f) return;
-  uint32_t n = 0;
-  if (fread(&n, 4, 1, f) != 1) { fclose(f); return; }
-  for (uint32_t i = 0; i < n; i++) {
-    uint32_t kl = 0, vl = 0;
-    if (fread(&kl, 4, 1, f) != 1 || kl > 64) break;
-    std::string k(kl, 0);
-    if (fread(&k[0], 1, kl, f) != kl) break;
-    if (fread(&vl, 4, 1, f) != 1 || vl > 4096) break;
-    std::vector<uint8_t> v(vl);
-    if (vl && fread(v.data(), 1, vl, f) != vl) break;
-    nvs()[k] = v;
-  }
-  fclose(f);
-}
-void nvsSave(const char *path) {
-  FILE *f = fopen(path, "wb");
-  if (!f) return;
-  uint32_t n = nvs().size();
-  fwrite(&n, 4, 1, f);
-  for (auto &kv : nvs()) {
-    uint32_t kl = kv.first.size(), vl = kv.second.size();
-    fwrite(&kl, 4, 1, f); fwrite(kv.first.data(), 1, kl, f);
-    fwrite(&vl, 4, 1, f); if (vl) fwrite(kv.second.data(), 1, vl, f);
-  }
-  fclose(f);
-}
-
 // the sketch
 void emuSetSpriteDir(const char *);
 void startBattle(int16_t dex, uint8_t lvl);

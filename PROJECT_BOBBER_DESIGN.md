@@ -1,8 +1,31 @@
 # Project Bobber — game design
 
-Working design recorded October 17, 2026. This describes the intended game;
-most systems below are not implemented. See [the handoff](PROJECT_BOBBER_HANDOFF.md)
-for the actual prototype, build instructions, and validation limits.
+Working design recorded October 17, 2026. The current playable milestone and
+validation are in [the handoff](PROJECT_BOBBER_HANDOFF.md).
+
+## Playable story loop
+
+The eight regular discoveries unlock each biome's legend recipe and encounter.
+Use any two eligible local fish to prepare one bait. The pairs are Croaker or
+Spot in the bay, Yellow Perch or Pumpkinseed at the lake, and Doubloon Darter
+or Barnacle-Back Goby at the grotto. Preparation takes reserved ingredients
+first. It leaves discoveries and bests intact. The recipe is in DOCK → SHOP →
+SUPPLIES or on the legend journal page once unlocked.
+
+Basic bait is free. Search Bait costs 12 coins and helps find undiscovered
+local fish. It is used automatically at a regular hook while local discoveries
+remain. Strong Line costs 65 coins and reduces tension buildup and increases
+the time before a snap. Fast Reel costs 90 coins and gains ground faster.
+Both upgrades equip automatically and persist. Bait is spent on hook, so
+cancelling a cast before hooking is free.
+
+Most regular fish still land immediately. Occasional regular fish and every
+legend enter a hold-to-reel fight. Release when tension climbs or the fish
+makes a hard pull. A snap loses the fish and the bait on that hook. The Old
+Man uses heavy runs, the Leviathan uses long dives, and Iron-Maw surges twice
+per cycle. Land the Old Man to unlock the lake and both main-area legends to
+unlock the grotto. Landing Iron-Maw leads to the ending, which can be revisited
+from the grotto's legend page. Fishing can continue after the ending.
 
 ## Purpose and tone
 
@@ -69,24 +92,17 @@ No gear destruction or escalating punishment loop.
 Two main areas and one secret area: Chincoteague Bay, Blue Mountain Lake, then
 Captain Thurl's Grotto. Roster: eight regular species plus one legend in each,
 24 regular species and three legends total. All three areas and their rosters
-are now implemented in the prototype. The shop now buys catches; bait purchases,
-tackle upgrades and fight systems remain future work.
+are now implemented in the prototype. The shop buys catches and offers Search Bait, tackle upgrades, and legend recipes.
 
 Confirmed progression (November 6): discover all eight regular species in a biome
 before its legend becomes available. Land the Old Man to unlock Blue Mountain
 Lake; land both main-area legends to unlock Captain Thurl's Grotto. These gates
 are implemented using retained species records. A biome's fifth journal page
 shows discovery progress and enables SEEK LEGEND once all eight are discovered.
-Legends never appear in ordinary casts. They currently use the simple patient
-wait/hook/land loop; special bait requirements and distinctive fights are future
-shop/combat milestones. Exact unlock narrative is open. Two pieces of an old
-chart remain a possible presentation for revealing the grotto.
-
-Adam proposed using all an area's base fish to make boss bait. Working alternative:
-discovering all eight unlocks the recipe, but consume a few common catches so a
-rare fish accidentally sold does not block progress. Ingredient quantities,
-reservation controls and recipes still need agreement. Mark/protect quest
-ingredients when selling.
+Legends never appear in ordinary casts. The fifth journal page links to the
+local bait recipe and enables SEEK LEGEND once the bait is prepared. The bite
+waits for the player, then hooking starts the fight. The two main-area catches
+unlock the grotto. The old chart remains an option for future presentation.
 
 Grounded collection direction replaces universal Gold/Diamond/Rainbow tiers:
 
@@ -125,15 +141,13 @@ catch. READY now has JOURNAL and DOCK; the dock opens COOLER, SHOP and TRAVEL.
 The cooler pages through individual fish with RESERVE/UNRESERVE and RELEASE.
 Reserved fish are excluded from both individual and bulk sales and must be
 unreserved before release. SHOP offers individual selling or SELL ALL, with a
-quoted payout and confirmation/cancellation before any change. Basic bait stays
-free as in the current fishing loop. No inventory bait, recipes, gear purchases
-or cooler upgrades have been added yet.
+quoted payout and confirmation/cancellation before any change. Basic bait stays free. The shop also sells bait and tackle and prepares legend bait.
 
 Provisional prices use a species-specific whole-coin price per pound, multiplied
 by the fish's ounce weight and rounded up (minimum one coin). Rates live in
 bobber_economy.h; they are starting tuning values, not a finished economy.
-Inventory, reservation flags and wallet persist together in a versioned single
-NVS blob, preventing half-completed sales between separate keys. Failed sales or
+Inventory, reservation flags, wallet, bait and tackle persist together in a
+versioned single NVS blob, preventing half-completed sales between separate keys. Failed sales or
 releases leave both live fish and wallet unchanged. A catch that fails to save
 stays in memory with a retry warning; further ordinary casts wait for a save.
 Unknown/corrupt economy data is preserved and blocks economic changes/ordinary
@@ -231,12 +245,11 @@ ranges, and independent persistent personal bests. Existing bay records/keys
 remain compatible. Travel is available while ready to cast and retains the last
 visited unlocked area; all areas' fish records survive travel and reloads.
 
-Discover all eight local species to seek that area's legend. The Old Man opens
-the lake; both main-area legends open the grotto. The boss encounters currently
-use the same wait/hook/land loop as ordinary fish. Ordinary casts have equal
-provisional chances among the current region's eight regular fish. No special
-bait, inventory consumption, tension fights, bait/tackle purchases, quests, lifetime totals,
-variants, ending rewards, or calendar systems are implemented yet.
+The playable story spans all three areas, including the bait shop, tackle,
+recipe prep, tension fights, and Iron-Maw ending. Ordinary basic-bait casts
+retain equal provisional chances across the local roster. Optional requests,
+specimen variants, lifetime totals, and a post-story collection reward remain
+design proposals.
 
 The static title retains its large bobber. Fishing scenes share a seated angler
 and gentle water/float animation, with marshes in the bay, mountains/forest/mist
@@ -246,7 +259,5 @@ Do not spend a large milestone polishing these placeholders before that directio
 is agreed. Hardware remains untested; emulator checks cannot establish physical
 touch/display behavior.
 
-Next: playtest automatic cooler storage, reservations, releases, quoted individual/
-bulk sales and wallet save/reload, along with existing travel and collection
-progression. Then agree special-bait recipes, purchase prices and tackle benefits;
-do not consume a discovery or reset a personal best when using inventory fish. Keep the relaxed tone and patient bite prompt.
+Next: playtest the story loop on the target handheld and tune prices, catch
+odds, and fight cues from that experience. Layout and art remain provisional.

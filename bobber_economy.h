@@ -1,6 +1,11 @@
 #pragma once
 
 static const int BOBBER_COOLER_CAPACITY = 20;
+static const int BOBBER_BAIT_LIMIT = 9;
+static const int BOBBER_BAIT_PRICE = 12;
+static const int BOBBER_LINE_PRICE = 65;
+static const int BOBBER_REEL_PRICE = 90;
+enum BobberTackle { BOBBER_STRONG_LINE = 1, BOBBER_FAST_REEL = 2 };
 struct BobberCoolerFish {
   uint8_t species;
   uint16_t ounces;
@@ -9,6 +14,9 @@ struct BobberCoolerFish {
 struct BobberEconomy {
   uint32_t coins;
   uint8_t count;
+  uint8_t bait;
+  uint8_t tackle;
+  uint8_t legendBait;
   BobberCoolerFish fish[BOBBER_COOLER_CAPACITY];
 };
 static BobberEconomy bobberEconomy = {};
@@ -45,9 +53,12 @@ static uint32_t bobberEconomyChecksum(const uint8_t *bytes) {
 }
 static void bobberEncodeEconomy(const BobberEconomy &economy, uint8_t *bytes) {
   memset(bytes, 0, BOBBER_ECONOMY_BYTES);
-  bytes[0] = 'B'; bytes[1] = 'C'; bytes[2] = 'L'; bytes[3] = 1;
+  bytes[0] = 'B'; bytes[1] = 'C'; bytes[2] = 'L'; bytes[3] = 2;
   bobberWrite32(bytes + 4, economy.coins);
   bytes[8] = economy.count;
+  bytes[9] = economy.bait;
+  bytes[10] = economy.tackle;
+  bytes[11] = economy.legendBait;
   for (int i = 0; i < economy.count; ++i) {
     uint8_t *p = bytes + 12 + i * 4;
     p[0] = economy.fish[i].species;
@@ -58,12 +69,17 @@ static void bobberEncodeEconomy(const BobberEconomy &economy, uint8_t *bytes) {
   bobberWrite32(bytes + 92, bobberEconomyChecksum(bytes));
 }
 static bool bobberDecodeEconomy(const uint8_t *bytes, BobberEconomy &economy) {
-  if (bytes[0] != 'B' || bytes[1] != 'C' || bytes[2] != 'L' || bytes[3] != 1 ||
-      bytes[8] > BOBBER_COOLER_CAPACITY || bytes[9] || bytes[10] || bytes[11] ||
+  if (bytes[0] != 'B' || bytes[1] != 'C' || bytes[2] != 'L' || (bytes[3] != 1 && bytes[3] != 2) ||
+      bytes[8] > BOBBER_COOLER_CAPACITY ||
+      (bytes[3] == 1 && (bytes[9] || bytes[10] || bytes[11])) ||
+      bytes[9] > BOBBER_BAIT_LIMIT || (bytes[10] & ~3) || (bytes[11] & ~7) ||
       bobberRead32(bytes + 92) != bobberEconomyChecksum(bytes)) return false;
   BobberEconomy decoded = {};
   decoded.coins = bobberRead32(bytes + 4);
   decoded.count = bytes[8];
+  decoded.bait = bytes[9];
+  decoded.tackle = bytes[10];
+  decoded.legendBait = bytes[11];
   for (int i = 0; i < BOBBER_COOLER_CAPACITY; ++i) {
     const uint8_t *p = bytes + 12 + i * 4;
     if (i >= decoded.count) {

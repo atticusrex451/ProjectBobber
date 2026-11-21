@@ -1,6 +1,39 @@
 # Project Bobber — development handoff
 
-Updated October 18, 2026. Read this before starting a new development chat.
+Updated November 21, 2026. The earlier sections below record historical milestones.
+
+## Current milestone
+
+The full story loop is playable. From READY, open DOCK → SHOP → SUPPLIES for
+Search Bait, Strong Line, Fast Reel, and the local legend recipe. Search Bait
+is spent on a regular hook when the current biome has undiscovered fish. Tackle
+is equipped permanently upon purchase. Basic bait remains available for free.
+
+Discover all eight local fish, then use PREP BAIT on the last journal page.
+Prepare one bait with any two of the listed fish. Reserve them in the cooler
+before selling if needed. PREPARE uses reserved ingredients first and saves
+the ingredients and bait together. Return to the journal and choose SEEK
+LEGEND. A cast can be cancelled before hooking without spending bait. On a
+fight, hold REEL to make progress and release to let tension fall. A line
+snap loses only the hooked fish and spent bait. The first two legend records
+unlock travel, and landing Iron-Maw opens the ending and lets fishing continue.
+The ending is replayable from the grotto legend page.
+
+The 96-byte economy save accepts the checkpoint's version 1 and upgrades to
+version 2 on the next economic mutation. Coins, cooler contents, reservations,
+and personal-best records carry over. Wallet, bait, tackle, and recipe
+ingredients share an atomic economy write. A failed hook write leaves the
+bait available and the bite waiting for retry. Existing local save files
+were left alone. Close the SDL emulator normally to write its NVS file.
+
+Run `bash tools/emu/tests/run.sh bobber` from the repo. The firmware input
+suite drives the real sketch setup/loop and emulated touch IRQ/driver with a
+deterministic clock. It completes all three biomes on a fresh save, including
+purchases, a deliberate snap, recrafting, all fights, and disk save/reloads
+using the SDL emulator's NVS serializer. Other Bobber suites cover legacy
+saves, failed writes, record retention, travel gates, and 2,500 catches.
+Artwork, fight timing, and shop prices are provisional. Physical hardware
+and the ESP32 toolchain were unavailable for this milestone.
 
 ## Purpose and working style
 

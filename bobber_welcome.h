@@ -5,11 +5,13 @@
 #include "bobber_species.h"
 #include "bobber_economy.h"
 
-// First Bobber milestone: an original, asset-free screen for the round display.
+// Project Bobber uses the shared firmware display and touch driver.
 // Set to 0 to run the upstream game again while fishing is under development.
 #define BOBBER_WELCOME 1
 
-enum BobberState { BOBBER_TITLE, BOBBER_JOURNAL, BOBBER_TRAVEL, BOBBER_DOCK, BOBBER_COOLER, BOBBER_SHOP, BOBBER_SELL_FISH, BOBBER_CONFIRM, BOBBER_READY, BOBBER_WAITING, BOBBER_BITE, BOBBER_CAUGHT };
+enum BobberState { BOBBER_TITLE, BOBBER_JOURNAL, BOBBER_TRAVEL, BOBBER_DOCK, BOBBER_COOLER, BOBBER_SHOP, BOBBER_SELL_FISH, BOBBER_CONFIRM,
+                   BOBBER_READY, BOBBER_WAITING, BOBBER_BITE, BOBBER_CAUGHT, BOBBER_SUPPLIES, BOBBER_RECIPE,
+                   BOBBER_FIGHT, BOBBER_LOST, BOBBER_ENDING };
 static BobberState bobberState = BOBBER_TITLE;
 static uint32_t bobberCastAt = 0;
 static uint32_t bobberAnimationAt = 0;
@@ -48,6 +50,9 @@ static bool bobberRegionUnlocked(BobberRegion region) {
   return bobberBests[BOBBER_OLD_MAN] != 0 && bobberBests[BOBBER_LEVIATHAN] != 0;
 }
 
+#include "bobber_progression.h"
+#include "bobber_fight.h"
+
 static void loadBobberRecord() {
   loadBobberEconomy();
   bobberCoolerPage = 0;
@@ -56,6 +61,7 @@ static void loadBobberRecord() {
   bobberAnimationFrame = 0;
   bobberRegion = bobberSavedRegion = BOBBER_BAY;
   bobberLegendCast = false;
+  bobberFight = {};
   bobberSpecies = BOBBER_FLOUNDER;
   bobberJournalPage = 0;
   for (int i = 0; i < BOBBER_SPECIES_COUNT; ++i)
@@ -116,7 +122,7 @@ static int bobberShopTouchTarget(int16_t x, int16_t y);
 static int bobberTouchTarget(int16_t x, int16_t y) {
   if (bobberButtonContains(x, y)) {
     if ((bobberState == BOBBER_READY || bobberState == BOBBER_CAUGHT) && bobberEconomyUnreadable) return 0;
-    return 1;
+    return bobberState == BOBBER_FIGHT ? 50 : 1;
   }
   const int shopTarget = bobberShopTouchTarget(x, y);
   if (shopTarget) return shopTarget;
@@ -134,8 +140,12 @@ static int bobberTouchTarget(int16_t x, int16_t y) {
           bobberRegionUnlocked((BobberRegion)i)) return 10 + i;
   }
   if (bobberState == BOBBER_JOURNAL && bobberJournalPage == 4 &&
-      bobberLegendAvailable(bobberRegion) && x >= 123 && x < 343 &&
-      y >= 304 && y < 348) return 20;
+      bobberLegendAvailable(bobberRegion) && y >= 304 && y < 348) {
+    if (bobberRegion == BOBBER_GROTTO && bobberBests[BOBBER_IRON_MAW]) {
+      if (x >= 237 && x < 371) return 21;
+      if (!bobberEconomyUnreadable && x >= 95 && x < 229) return 20;
+    } else if (!bobberEconomyUnreadable && x >= 123 && x < 343) return 20;
+  }
   return 0;
 }
 
@@ -465,6 +475,40 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
   canvas->fillScreen(navy);
   canvas->setTextColor(cream);
   if (renderBobberShop(canvas)) return;
+  if (bobberState == BOBBER_ENDING || bobberState == BOBBER_LOST || bobberState == BOBBER_FIGHT) {
+    if (bobberState == BOBBER_ENDING) {
+      bobberShopText(canvas, "THE END", 84, 3);
+      drawBobberOtherFish(canvas, BOBBER_IRON_MAW, 190, 1, true);
+      bobberShopText(canvas, "All three legends landed", 252, 2);
+      bobberShopText(canvas, "For Dad and his fishing buddy Thurl.", 290);
+      bobberShopText(canvas, "There is always another day on the water.", 314);
+    } else if (bobberState == BOBBER_LOST) {
+      bobberShopText(canvas, "THE LINE SNAPPED", 153, 3);
+      bobberShopText(canvas, "Release REEL when tension runs high.", 218);
+      bobberShopText(canvas, "Basic bait is always available.", 244);
+    } else {
+      bobberShopText(canvas, bobberLegendCast ? bobberNames[bobberSpecies] : "A fish is putting up a fight!", 84, 2);
+      const auto &pattern = bobberFightPatterns[bobberFight.pattern];
+      const bool danger = bobberFight.tension >= BOBBER_DANGER;
+      bobberShopText(canvas, danger ? "LET THE LINE REST" :
+                             bobberHardPull() ? pattern.cue : "Steady water", 132, 2);
+      bobberShopText(canvas, "LINE TENSION", 179, 2);
+      canvas->fillRoundRect(108, 206, 250, 20, 5, 0x1946);
+      const int tensionWidth = bobberFight.tension / 400;
+      if (tensionWidth) canvas->fillRect(108, 206, tensionWidth, 20, danger ? 0xF800 : orange);
+      canvas->drawFastVLine(108 + BOBBER_DANGER / 400, 203, 26, cream);
+      bobberShopText(canvas, "REEL PROGRESS", 252, 2);
+      canvas->fillRoundRect(108, 279, 250, 20, 5, 0x1946);
+      const int progressWidth = bobberFight.progress * 250 / pattern.progressNeeded;
+      if (progressWidth) canvas->fillRect(108, 279, progressWidth, 20, lime);
+      bobberShopText(canvas, "Hold to reel. Release to ease tension.", 331);
+    }
+    bobberShopButton(canvas, 143, 376, 180,
+                     bobberState == BOBBER_FIGHT ? (bobberFight.reeling ? "REELING" : "REEL") : "CONTINUE");
+    canvas->setTextSize(1);
+    canvas->flush();
+    return;
+  }
   if (bobberState == BOBBER_TRAVEL) {
     canvas->setTextSize(3);
     canvas->setCursor(152, 72);
@@ -525,10 +569,10 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
       canvas->setCursor(233 - strlen(detail) * 3, 279);
       canvas->print(detail);
       if (bobberLegendAvailable(bobberRegion)) {
-        canvas->fillRoundRect(123, 304, 220, 44, 12, water);
-        canvas->setTextSize(2);
-        canvas->setCursor(167, 318);
-        canvas->print("SEEK LEGEND");
+        const bool finished = bobberRegion == BOBBER_GROTTO && bobberBests[BOBBER_IRON_MAW];
+        bobberShopButton(canvas, finished ? 95 : 123, 304, finished ? 134 : 220,
+                         bobberHasLegendBait() ? "SEEK LEGEND" : "PREP BAIT", !bobberEconomyUnreadable);
+        if (finished) bobberShopButton(canvas, 237, 304, 134, "ENDING");
       } else {
         canvas->setCursor(146, 317);
         canvas->print("Discover all eight to seek");
@@ -655,7 +699,8 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
     canvas->print(bobberLegendCast ? "Legend! Tap to hook!" : "Bite! Tap to hook!");
     canvas->setTextSize(1);
     canvas->setCursor(176, 347);
-    canvas->print("Take your time, Dad.");
+    if (bobberEconomyNotice) bobberShopText(canvas, bobberEconomyNotice, 347);
+    else canvas->print("Take your time, Dad.");
   } else if (bobberState == BOBBER_CAUGHT) {
     canvas->setCursor(233 - strlen(bobberNames[bobberSpecies]) * 6, 321);
     canvas->print(bobberNames[bobberSpecies]);
@@ -716,7 +761,11 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
                         BOBBER_BUTTON_W, BOBBER_BUTTON_H, 16, lime);
   canvas->setTextColor(navy);
   const bool canCast = bobberState == BOBBER_READY || bobberState == BOBBER_CAUGHT;
-  const char *button = bobberState == BOBBER_TITLE ? "PLAY" :
+  const bool legendLanded = bobberState == BOBBER_CAUGHT && bobberLegendCast;
+  const char *button = legendLanded ?
+                       (bobberBests[bobberSpecies] > bobberSavedBests[bobberSpecies] ? "RETRY SAVE" :
+                        bobberSpecies == BOBBER_IRON_MAW ? "ENDING" : "CONTINUE") :
+                       bobberState == BOBBER_TITLE ? "PLAY" :
                        bobberState == BOBBER_WAITING ? "BACK" :
                        bobberState == BOBBER_BITE ? "HOOK" :
                        canCast && bobberEconomyUnreadable ? "SAVE ERROR" :
@@ -730,7 +779,60 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
   canvas->flush();
 }
 
+static void bobberLandFish() {
+  if (bobberSessionCatches < UINT32_MAX) ++bobberSessionCatches;
+  bobberCatchOz = (uint16_t)random(bobberMinOz[bobberSpecies], bobberMaxOz[bobberSpecies] + 1);
+  bobberNewBest = bobberCatchOz > bobberBests[bobberSpecies];
+  if (bobberNewBest) bobberBests[bobberSpecies] = bobberCatchOz;
+  saveBobberRecord();
+  bobberStoreCatch(bobberSpecies, bobberCatchOz);
+  bobberState = BOBBER_CAUGHT;
+}
+
+static void bobberHookFish() {
+  const bool search = !bobberLegendCast && bobberEconomy.bait && !bobberLegendAvailable(bobberRegion);
+  if (bobberLegendCast || search) {
+    BobberEconomy next = bobberEconomy;
+    if (bobberLegendCast) {
+      if (!bobberLegendAvailable(bobberRegion) || !bobberHasLegendBait()) return;
+      next.legendBait &= ~(1 << bobberRegion);
+    } else --next.bait;
+    if (!bobberCommitEconomy(next)) return;
+  }
+  bobberSpecies = bobberLegendCast ? bobberLegends[bobberRegion] : bobberRollFish(search);
+  if (bobberLegendCast || random(5) == 0) {
+    bobberStartFight(millis(), bobberLegendCast ? 1 + bobberRegion : 0);
+    bobberState = BOBBER_FIGHT;
+  } else bobberLandFish();
+}
+
 static void updateBobberFishing(Arduino_Canvas *canvas, uint32_t now) {
+  if (bobberState == BOBBER_FIGHT) {
+    const uint32_t dt = now - bobberFight.at;
+    if (dt < 50) return;
+    bobberFight.at = now;
+    const int step = dt > 100 ? 100 : (int)dt;
+    const bool pull = bobberHardPull();
+    const auto &pattern = bobberFightPatterns[bobberFight.pattern];
+    bobberFight.elapsed += step;
+    if (bobberFight.reeling) {
+      const int buildup = pull ? pattern.pullTension : 26;
+      const int relief = bobberEconomy.tackle & BOBBER_STRONG_LINE ? 12 : 0;
+      bobberFight.tension += step * (buildup - relief);
+      bobberFight.progress += step * ((pull ? 5 : 15) + (bobberEconomy.tackle & BOBBER_FAST_REEL ? 5 : 0));
+    } else {
+      bobberFight.tension -= step * 47;
+    }
+    if (bobberFight.tension < 0) bobberFight.tension = 0;
+    if (bobberFight.tension > 100000) bobberFight.tension = 100000;
+    if (bobberFight.tension >= BOBBER_DANGER) bobberFight.strainMs += step;
+    else bobberFight.strainMs = 0;
+    const int strainLimit = bobberEconomy.tackle & BOBBER_STRONG_LINE ? 1050 : 650;
+    if (bobberFight.strainMs >= strainLimit) bobberState = BOBBER_LOST;
+    else if (bobberFight.progress >= pattern.progressNeeded) bobberLandFish();
+    renderBobberWelcome(canvas);
+    return;
+  }
   // A fixed, short wait makes this first interaction easy to try repeatedly.
   // The bite stays available: this relaxed prototype has no reaction deadline.
   if (bobberState == BOBBER_WAITING && now - bobberCastAt >= 3000) {
@@ -763,8 +865,11 @@ static void updateBobberTouch(Arduino_Canvas *canvas, bool pressed,
       pressedState = bobberState;
     }
     else if (bobberTouchTarget(x, y) != pressedTarget) armed = false;
+    if (bobberState == BOBBER_FIGHT)
+      bobberFight.reeling = armed && pressedState == BOBBER_FIGHT && pressedTarget == 50;
   } else if (wasDown) {
-    if (armed && pressedState == bobberState && bobberTouchTarget(x, y) == pressedTarget) {
+    bobberFight.reeling = false;
+    if (armed && pressedState != BOBBER_FIGHT && pressedState == bobberState && bobberTouchTarget(x, y) == pressedTarget) {
       if (handleBobberShopTouch(pressedTarget)) {}
       else if (pressedTarget == 3) --bobberJournalPage;
       else if (pressedTarget == 4) ++bobberJournalPage;
@@ -784,17 +889,31 @@ static void updateBobberTouch(Arduino_Canvas *canvas, bool pressed,
         bobberState = BOBBER_READY;
       }
       else if (pressedTarget == 20) {
-        if (!bobberLegendAvailable(bobberRegion)) { armed = false; wasDown = pressed; return; }
-        bobberLegendCast = true;
-        bobberCastAt = millis();
-        bobberState = BOBBER_WAITING;
+        if (bobberHasLegendBait()) {
+          bobberLegendCast = true;
+          bobberCastAt = millis();
+          bobberEconomyNotice = nullptr;
+          bobberState = BOBBER_WAITING;
+        } else {
+          bobberShopReturn = BOBBER_JOURNAL;
+          bobberState = BOBBER_RECIPE;
+        }
       }
+      else if (pressedTarget == 21) bobberState = BOBBER_ENDING;
       else if (pressedTarget == 2) {
         bobberJournalPage = 0;
         bobberState = BOBBER_JOURNAL;
       }
       else if (bobberState == BOBBER_JOURNAL || bobberState == BOBBER_TRAVEL) bobberState = BOBBER_READY;
       else if (bobberState == BOBBER_TITLE) bobberState = BOBBER_READY;
+      else if (bobberState == BOBBER_ENDING || bobberState == BOBBER_LOST) {
+        bobberLegendCast = false;
+        bobberState = BOBBER_READY;
+      }
+      else if (bobberState == BOBBER_CAUGHT && bobberLegendCast) {
+        if (bobberBests[bobberSpecies] > bobberSavedBests[bobberSpecies]) saveBobberRecord();
+        else bobberState = bobberSpecies == BOBBER_IRON_MAW ? BOBBER_ENDING : BOBBER_READY;
+      }
       else if (bobberState == BOBBER_WAITING) { bobberState = BOBBER_READY; bobberLegendCast = false; }
       else if ((bobberState == BOBBER_READY || bobberState == BOBBER_CAUGHT) && bobberEconomyDirty) {
         retryBobberEconomy();
@@ -805,23 +924,9 @@ static void updateBobberTouch(Arduino_Canvas *canvas, bool pressed,
         bobberCoolerPage = 0;
         bobberState = BOBBER_COOLER;
       }
-      else if (bobberState == BOBBER_BITE) {
-        // Roll only on a successful hook, never on redraw or a cancelled cast.
-        if (bobberSessionCatches < UINT32_MAX) ++bobberSessionCatches;
-        // Legends are explicitly sought after discovering all local species.
-        // Ordinary casts use only the current area's eight regular fish.
-        bobberSpecies = bobberLegendCast ? bobberLegends[bobberRegion] :
-                        bobberRosters[bobberRegion][random(BOBBER_REGULAR_COUNT)];
-        bobberCatchOz = (uint16_t)random(bobberMinOz[bobberSpecies],
-                                       bobberMaxOz[bobberSpecies] + 1);
-        bobberNewBest = bobberCatchOz > bobberBests[bobberSpecies];
-        if (bobberNewBest) bobberBests[bobberSpecies] = bobberCatchOz;
-        // If storage failed, retry the outstanding record on the next catch.
-        saveBobberRecord();
-        bobberStoreCatch(bobberSpecies, bobberCatchOz);
-        bobberState = BOBBER_CAUGHT;
-      }
+      else if (bobberState == BOBBER_BITE) bobberHookFish();
       else {
+        bobberEconomyNotice = nullptr;
         bobberLegendCast = false;
         bobberState = BOBBER_WAITING;
         bobberCastAt = millis();

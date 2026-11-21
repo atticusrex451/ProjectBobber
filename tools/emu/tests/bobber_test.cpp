@@ -1,5 +1,6 @@
 // Bobber-specific touch/state checks; no upstream --shot preparation.
 #include "bobber_welcome.h"
+#include "bobber_test_fight.h"
 #include <cassert>
 #include <cstdio>
 
@@ -106,6 +107,7 @@ int main() {
     updateBobberFishing(&canvas, bobberCastAt + 3000);
     assert(bobberState == BOBBER_BITE);
     tap();
+    finishBobberFight(&canvas);
     assert(bobberState == BOBBER_CAUGHT);
     assert(bobberSessionCatches == (uint32_t)i + 1);
     ++catches[bobberSpecies];

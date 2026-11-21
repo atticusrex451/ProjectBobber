@@ -1,5 +1,6 @@
 // End-to-end biome progression through the real Bobber touch/state handlers.
 #include "bobber_welcome.h"
+#include "bobber_test_fight.h"
 #include <cassert>
 #include <cstdio>
 
@@ -132,6 +133,7 @@ int main() {
       assert(bobberState == BOBBER_WAITING);
       updateBobberFishing(&canvas, bobberCastAt + 3000);
       mainTap();
+      finishBobberFight(&canvas);
       assert(bobberState == BOBBER_CAUGHT && bobberSessionCatches == ++totalCatches);
       bool local = false;
       for (auto species : bobberRosters[r]) local |= bobberSpecies == species;
@@ -147,6 +149,19 @@ int main() {
     for (auto species : bobberRosters[r]) assert(catches[species] > 0);
     assert(!bobberBests[bobberLegends[r]]); // ordinary casts never roll a legend
     if (r < 2) assert(!bobberRegionUnlocked((BobberRegion)(r + 1)));
+
+    // The stress loop sells full coolers. Provision two valid catches here;
+    // the firmware playthrough collects and prepares both from scratch.
+    if (bobberEconomy.count > BOBBER_COOLER_CAPACITY - 2) assert(bobberSellFish(-1));
+    for (auto ingredient : bobberIngredients[region])
+      assert(bobberStoreCatch(ingredient, bobberMinOz[ingredient]));
+    openLegend();
+    tap(233, 326);
+    assert(bobberState == BOBBER_RECIPE);
+    tap(233, 312);
+    assert(bobberHasLegendBait());
+    mainTap();
+    mainTap();
 
     // Legend casts can be cancelled without consuming a catch or rolling RNG.
     openLegend();
@@ -170,12 +185,19 @@ int main() {
     updateBobberFishing(&canvas, bobberCastAt + 60000);
     assert(bobberState == BOBBER_BITE);
     mainTap();
+    assert(bobberState == BOBBER_FIGHT && !bobberHasLegendBait());
+    finishBobberFight(&canvas);
     assert(bobberState == BOBBER_CAUGHT && bobberSpecies == bobberLegends[r]);
     assert(bobberSessionCatches == ++totalCatches);
     assert(bobberCatchOz >= bobberMinOz[bobberSpecies] && bobberCatchOz <= bobberMaxOz[bobberSpecies]);
     assert(bobberSavedBests[bobberSpecies] == bobberCatchOz);
     if (r < 2) assert(bobberRegionUnlocked((BobberRegion)(r + 1)));
-    returnReady();
+    mainTap();
+    if (region == BOBBER_GROTTO) {
+      assert(bobberState == BOBBER_ENDING);
+      mainTap();
+    }
+    assert(bobberState == BOBBER_READY);
   }
 
   const auto records = std::vector<uint16_t>(bobberBests, bobberBests + BOBBER_SPECIES_COUNT);

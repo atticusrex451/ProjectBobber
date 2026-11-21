@@ -1,4 +1,5 @@
 #include "bobber_welcome.h"
+#include "bobber_test_fight.h"
 #include <cassert>
 #include <cstdio>
 
@@ -31,6 +32,7 @@ int main() {
     assert(bobberState == BOBBER_WAITING);
     updateBobberFishing(&canvas, bobberCastAt + 3000);
     mainTap();
+    finishBobberFight(&canvas);
     assert(bobberState == BOBBER_CAUGHT && bobberEconomy.count == i + 1);
     const auto &fish = bobberEconomy.fish[i];
     assert(fish.species == bobberSpecies && fish.ounces == bobberCatchOz && !fish.reserved);
@@ -140,22 +142,39 @@ int main() {
   assert(bobberEconomy.count == 1 && bobberEconomy.fish[0].ounces == 8);
   sameRecords(records);
 
+  // A checkpoint-format save opens without rewriting the wallet or reservations.
+  assert(bobberReserveFish(0));
+  auto &legacy = nvs()["bobberCooler"];
+  legacy[3] = 1;
+  bobberWrite32(legacy.data() + 92, bobberEconomyChecksum(legacy.data()));
+  const auto legacySave = nvs();
+  loadBobberRecord();
+  assert(!bobberEconomyUnreadable && bobberEconomy.count == 1 && bobberEconomy.fish[0].reserved);
+  assert(bobberEconomy.coins == beforeCoins + quote && !bobberEconomy.tackle &&
+         !bobberEconomy.bait && !bobberEconomy.legendBait && nvs() == legacySave);
+  assert(bobberReserveFish(0));
+  assert(nvs()["bobberCooler"][3] == 2);
+  sameRecords(records);
+
   // Semantic corruption is rejected even if the checksum is valid. Never
   // overwrite an unreadable/future save with an empty wallet or inventory.
   const auto healthySave = nvs();
-  for (int variant = 0; variant < 9; ++variant) {
+  for (int variant = 0; variant < 12; ++variant) {
     nvs() = healthySave;
     auto &bytes = nvs()["bobberCooler"];
     if (variant == 0) bytes.resize(95);
     if (variant == 1) bytes.push_back(0);
     if (variant == 2) bytes[4] ^= 1;
     if (variant >= 3) {
-      if (variant == 3) bytes[3] = 2;
+      if (variant == 3) bytes[3] = 3;
       if (variant == 4) bytes[8] = 21;
       if (variant == 5) bytes[12] = BOBBER_OLD_MAN;
       if (variant == 6) bytes[13] = bytes[14] = 0;
       if (variant == 7) bytes[15] = 2;
       if (variant == 8) bytes[12] = 255;
+      if (variant == 9) bytes[9] = BOBBER_BAIT_LIMIT + 1;
+      if (variant == 10) bytes[10] = 4;
+      if (variant == 11) bytes[11] = 8;
       bobberWrite32(bytes.data() + 92, bobberEconomyChecksum(bytes.data()));
     }
     const auto damagedSave = nvs();
