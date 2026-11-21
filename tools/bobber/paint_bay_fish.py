@@ -145,6 +145,11 @@ def sprite(name, colors, body, dorsals, tail, markings=None):
     if name in ("PowderEel", "IronMaw"):
         draw.rectangle((ex-1,ey-1,ex+2,ey+1),fill="#ef913e")
         draw.point((ex,ey),fill=ink)
+    if name == "IronMaw":
+        # The lure rises beyond the body and stays in the trophy silhouette.
+        draw.line([(30,12),(31,6),(35,3),(40,4)],fill="#8396a7")
+        draw.rectangle((39,3,41,5),fill="#b9e6c9")
+        draw.point((40,4),fill="#eff4ca")
     if name == "Leviathan":
         for x in (14, 19, 23):
             draw.line((x, chin, x-2, chin+6), fill=belly)
