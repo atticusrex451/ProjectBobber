@@ -2,12 +2,13 @@
 
 #include "bobber_bay_background.h"
 #include "bobber_lake_background.h"
+#include "bobber_grotto_background.h"
 
 // Half-resolution art writes directly to the landscape canvas. Repaint only
 // this patch during idle animation so headings and controls keep their pixels.
 static constexpr int BOBBER_LANDSCAPE_PATCH_X = 53;
 static constexpr int BOBBER_LANDSCAPE_PATCH_Y = 101;
-static constexpr int BOBBER_LANDSCAPE_PATCH_RIGHT = 180;
+static constexpr int BOBBER_LANDSCAPE_PATCH_RIGHT = 183;
 static constexpr int BOBBER_LANDSCAPE_PATCH_BOTTOM = 152;
 
 static constexpr int BOBBER_LAKE_ANIMATION_FRAMES = 160;
@@ -16,24 +17,29 @@ static constexpr int BOBBER_FLOCK_END = 78;
 static constexpr int BOBBER_FLOCK_SKY_TOP = 14;
 static constexpr int BOBBER_FLOCK_SKY_BOTTOM = 40;
 
-static bool bobberHasPaintedWater(BobberRegion region) {
-  return region == BOBBER_BAY || region == BOBBER_LAKE;
-}
+struct BobberLandscape {
+  const uint16_t *rows;
+  const uint16_t *runs;
+  const uint16_t *palette;
+};
+
+static constexpr BobberLandscape bobberLandscapes[] = {
+  {bobberBayRows, bobberBayRuns, bobberBayPalette},
+  {bobberLakeRows, bobberLakeRuns, bobberLakePalette},
+  {bobberGrottoRows, bobberGrottoRuns, bobberGrottoPalette},
+};
 
 static void restoreBobberLandscape(Arduino_Canvas *canvas, int left, int top, int right, int bottom) {
-  const bool lake = bobberRegion == BOBBER_LAKE;
-  const auto *rows = lake ? bobberLakeRows : bobberBayRows;
-  const auto *runs = lake ? bobberLakeRuns : bobberBayRuns;
-  const auto *palette = lake ? bobberLakePalette : bobberBayPalette;
+  const auto &art = bobberLandscapes[bobberRegion];
   constexpr int stride = 466;
   auto *pixels = canvas->getFramebuffer();
   for (int y = top; y < bottom; ++y) {
     auto *row = pixels + (2 * y) * stride;
     int x = 0;
-    for (int run = rows[y]; run < rows[y + 1] && x < right; ++run) {
-      const uint16_t packed = runs[run];
+    for (int run = art.rows[y]; run < art.rows[y + 1] && x < right; ++run) {
+      const uint16_t packed = art.runs[run];
       const int end = x + (packed >> 8);
-      const uint16_t color = palette[packed & 255];
+      const uint16_t color = art.palette[packed & 255];
       for (int pixel = x < left ? left : x; pixel < end && pixel < right; ++pixel) {
         const int px = 2 * pixel;
         row[px] = row[px + 1] = row[px + stride] = row[px + stride + 1] = color;
@@ -43,11 +49,12 @@ static void restoreBobberLandscape(Arduino_Canvas *canvas, int left, int top, in
   }
 }
 
-static void drawBobberPaintedScene(Arduino_Canvas *canvas, bool full) {
+static void drawBobberScene(Arduino_Canvas *canvas, bool full = false) {
   if (full) restoreBobberLandscape(canvas, 0, 0, 233, 233);
   else restoreBobberLandscape(canvas, BOBBER_LANDSCAPE_PATCH_X, BOBBER_LANDSCAPE_PATCH_Y,
                         BOBBER_LANDSCAPE_PATCH_RIGHT, BOBBER_LANDSCAPE_PATCH_BOTTOM);
   const bool lake = bobberRegion == BOBBER_LAKE;
+  const bool grotto = bobberRegion == BOBBER_GROTTO;
   const int phase = bobberAnimationFrame % 8;
   static const int bob[] = {0, 0, 1, 1, 0, 0, -1, -1};
   const int drift = phase <= 4 ? phase : 8 - phase;
@@ -58,12 +65,12 @@ static void drawBobberPaintedScene(Arduino_Canvas *canvas, bool full) {
                          (bobberState == BOBBER_FIGHT && bobberHardPull());
   const int floatY = splashing ? 131 : 128 + bob[(phase + 2) % 8];
   constexpr uint16_t ink = 0x1988, umber = 0x51E5, copper = 0x9B88;
-  const uint16_t wood = lake ? 0xAC69 : 0xC4C9;
-  const uint16_t rim = lake ? 0xD632 : 0xE651;
-  const uint16_t canvasCoat = lake ? 0x9A87 : 0x53C9;
+  const uint16_t wood = grotto ? 0x93E9 : lake ? 0xAC69 : 0xC4C9;
+  const uint16_t rim = grotto ? 0xD611 : lake ? 0xD632 : 0xE651;
+  const uint16_t canvasCoat = grotto ? 0x6C12 : lake ? 0x9A87 : 0x53C9;
   constexpr uint16_t skin = 0xCE0F;
-  const uint16_t reflection = lake ? 0x2BB0 : 0x2AEB;
-  const uint16_t glint = lake ? 0x5CF3 : 0x6510;
+  const uint16_t reflection = grotto ? 0x1AEC : lake ? 0x2BB0 : 0x2AEB;
+  const uint16_t glint = grotto ? 0x44CE : lake ? 0x5CF3 : 0x6510;
   auto span = [canvas](int x, int y, int w, int h, uint16_t color) {
     canvas->fillRect(2 * x, 2 * y, 2 * w, 2 * h, color);
   };
@@ -114,7 +121,7 @@ static void drawBobberPaintedScene(Arduino_Canvas *canvas, bool full) {
   span(157 - drift, 146, 19, 1, glint);
 
   // An occasional tern skims the Bay channel above the float.
-  if (!lake && bobberState != BOBBER_FIGHT && bobberAnimationFrame >= 48) {
+  if (bobberRegion == BOBBER_BAY && bobberState != BOBBER_FIGHT && bobberAnimationFrame >= 48) {
     const int flight = bobberAnimationFrame - 48;
     const int x = 168 - flight * 5;
     const int y = 106 + flight / 4;
@@ -133,6 +140,18 @@ static void drawBobberPaintedScene(Arduino_Canvas *canvas, bool full) {
     span(x + 5, 115, 3, 4, ink);
     span(x + 8, 116, 2, 1, ink);
     span(x + 5, 117, 2, 1, rim);
+  }
+
+  if (grotto && bobberState != BOBBER_FIGHT && bobberAnimationFrame >= 40) {
+    // A drop falls through the light, then briefly ripples on the pool.
+    const int drip = bobberAnimationFrame - 40;
+    if (drip < 9) span(171, 103 + drip * 3, 1, 2, 0x9DF1);
+    else if (drip < 17) {
+      const int spread = 2 + drip - 9;
+      span(171 - spread, 132, 3, 1, glint);
+      span(170 + spread, 132, 3, 1, glint);
+      span(169, 133, 5, 1, reflection);
+    }
   }
 
   // A seated angler in a canvas jacket, braced against the side of the skiff.

@@ -11,7 +11,7 @@ the same pixel scale and catch card, with species-specific shapes and markings.
 Their silhouettes, trophy wall entries and cooler portraits use the same art.
 The Bay stays visible during fights. Art uses a 233 × 233 pixel grid at 2×
 scale, with native-resolution text and touch controls. Blue Mountain Lake
-shares the same renderer. Captain Thurl’s Grotto uses its earlier artwork.
+and Captain Thurl’s Grotto share the same renderer.
 
 The editable indexed painting is `tools/bobber/chincoteague.png`. After
 editing it, run `python3 tools/bobber/pack_landscape.py bay` with Pillow to regenerate
@@ -31,6 +31,17 @@ Summit Leviathan a shared catch card. Each portrait also has a trophy silhouette
 The editable painting is `tools/bobber/blue-mountain-lake.png`. Regenerate
 assets with `python3 tools/bobber/pack_landscape.py lake` and
 `python3 tools/bobber/paint_lake_fish.py` in a Pillow environment.
+
+## Captain Thurl’s Grotto art pass
+
+An original, AI-assisted painting frames the tidal pool with a salt-ivy arch,
+a shaft of daylight, and an old tackle tin. A cave drip makes an occasional
+ripple. All eight grotto fish and Sovereign Iron-Maw have pixel portraits, and
+the ending uses the grotto backdrop and Iron-Maw portrait.
+
+The editable painting is `tools/bobber/thurls-grotto.png`. Regenerate assets
+with `python3 tools/bobber/pack_landscape.py grotto` and
+`python3 tools/bobber/paint_grotto_fish.py` in a Pillow environment.
 
 ## Current milestone
 

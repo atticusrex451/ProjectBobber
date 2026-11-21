@@ -107,10 +107,10 @@ int main() {
     const auto animationSeed = g_seed;
     updateBobberFishing(&canvas, 150);
     assert(canvas.fb != still && g_seed == animationSeed && bobberState == BOBBER_READY);
-    const int x0 = bobberHasPaintedWater(region) ? 2 * BOBBER_LANDSCAPE_PATCH_X : 73;
-    const int y0 = bobberHasPaintedWater(region) ? 2 * BOBBER_LANDSCAPE_PATCH_Y : 145;
-    const int x1 = bobberHasPaintedWater(region) ? 2 * BOBBER_LANDSCAPE_PATCH_RIGHT : 393;
-    const int y1 = bobberHasPaintedWater(region) ? 2 * BOBBER_LANDSCAPE_PATCH_BOTTOM : 295;
+    const int x0 = 2 * BOBBER_LANDSCAPE_PATCH_X;
+    const int y0 = 2 * BOBBER_LANDSCAPE_PATCH_Y;
+    const int x1 = 2 * BOBBER_LANDSCAPE_PATCH_RIGHT;
+    const int y1 = 2 * BOBBER_LANDSCAPE_PATCH_BOTTOM;
     for (int y = 0; y < 466; ++y) for (int x = 0; x < 466; ++x)
       if (x < x0 || x >= x1 || y < y0 || y >= y1)
         assert(canvas.fb[y * 466 + x] == still[y * 466 + x]);
@@ -128,6 +128,15 @@ int main() {
         assert(std::equal(skyEnd, canvas.fb.begin() + y0 * 466, still.begin() + (skyEnd - canvas.fb.begin())));
       }
       assert(sawFlock && canvas.fb == still && g_seed == animationSeed);
+    }
+    if (region == BOBBER_GROTTO) {
+      Arduino_Canvas fresh(466, 466, nullptr);
+      for (uint32_t frame = 2; frame <= 64; ++frame) {
+        updateBobberFishing(&canvas, frame * 150);
+        renderBobberWelcome(&fresh);
+        assert(canvas.fb == fresh.fb); // the drip and pool ripples clear cleanly
+      }
+      assert(canvas.fb == still && g_seed == animationSeed);
     }
     openLegend();
     tap(233, 326);
@@ -252,11 +261,9 @@ int main() {
     canvas.fillScreen(0);
     drawBobberTrophy(&canvas, (BobberSpecies)i, 144, false);
     const auto silhouette = canvas.fb;
-    if (bobberHasPaintedPortrait((BobberSpecies)i)) {
-      assert(std::find(silhouette.begin(), silhouette.end(), 0x4A69) != silhouette.end());
-      for (const auto &previous : paintedSilhouettes) assert(silhouette != previous);
-      paintedSilhouettes.push_back(silhouette);
-    }
+    assert(std::find(silhouette.begin(), silhouette.end(), 0x4A69) != silhouette.end());
+    for (const auto &previous : paintedSilhouettes) assert(silhouette != previous);
+    paintedSilhouettes.push_back(silhouette);
     canvas.fillScreen(0);
     drawBobberTrophy(&canvas, (BobberSpecies)i, 144, true);
     assert(canvas.fb != silhouette);

@@ -65,8 +65,9 @@ def sprite(name, colors, body, dorsals, tail, markings=None):
     cheek = body[1][0] + 3
     chin = max(y for x, y in body if x <= cheek + 4)
     bottom = max(y for x, y in body)
-    draw.polygon([(cheek+12,chin-4),(cheek+27,bottom+4),(cheek+34,bottom+1),
-                  (cheek+27,chin-3)], fill=fin, outline=ink)
+    if name not in ("CopperFlounder", "PowderEel"):
+        draw.polygon([(cheek+12,chin-4),(cheek+27,bottom+4),(cheek+34,bottom+1),
+                      (cheek+27,chin-3)], fill=fin, outline=ink)
     for points in [tail, *dorsals]:
         draw.polygon(points, fill=fin, outline=ink)
         pivot = points[0]
@@ -135,8 +136,15 @@ def sprite(name, colors, body, dorsals, tail, markings=None):
     draw.point((ex,ey-1),fill="#ffebc5")
     draw.line((body[0][0]+1,body[0][1],cheek-2,body[0][1]+1),fill=ink)
     draw.line([(cheek+8,ey-2),(cheek+11,ey+4),(cheek+8,chin-1)],fill=back)
-    draw.polygon([(cheek+13,chin-7),(cheek+28,chin-3),(cheek+20,chin),(cheek+12,chin-4)],fill=fin)
-    draw.line((cheek+13,chin-6,cheek+24,chin-3),fill=back)
+    if name not in ("CopperFlounder", "PowderEel", "IronMaw"):
+        draw.polygon([(cheek+13,chin-7),(cheek+28,chin-3),(cheek+20,chin),(cheek+12,chin-4)],fill=fin)
+        draw.line((cheek+13,chin-6,cheek+24,chin-3),fill=back)
+    if name == "CopperFlounder":
+        draw.ellipse((ex+3,ey-6,ex+7,ey-2),fill=belly,outline=ink)
+        draw.point((ex+5,ey-4),fill=ink)
+    if name in ("PowderEel", "IronMaw"):
+        draw.rectangle((ex-1,ey-1,ex+2,ey+1),fill="#ef913e")
+        draw.point((ex,ey),fill=ink)
     if name == "Leviathan":
         for x in (14, 19, 23):
             draw.line((x, chin, x-2, chin+6), fill=belly)
