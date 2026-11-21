@@ -145,8 +145,11 @@ static bool handleBobberShopTouch(int target) {
 }
 static void renderBobberShopIntro(Arduino_Canvas *canvas) {
   bobberHeading(canvas, "BAIT & TACKLE", 58);
+  constexpr int scale = 2;
+  constexpr int x = (466 - scale * BOBBER_SHOPKEEPER_WIDTH) / 2;
+  constexpr int y = 298 - scale * BOBBER_SHOPKEEPER_HEIGHT;
   for (const auto &span : bobberShopkeeper)
-    canvas->fillRect(158 + 3 * span.x, 142 + 3 * span.y, 3 * span.width, 3, span.color);
+    canvas->fillRect(x + scale * span.x, y + scale * span.y, scale * span.width, scale, span.color);
   bobberPanel(canvas, 83, 321, 300, 37, BOBBER_BRASS);
   canvas->setTextColor(BOBBER_CREAM);
   bobberShopText(canvas, "Fish stories are free.", 332, 2);

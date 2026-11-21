@@ -58,9 +58,9 @@ during the animation. The first shop visit per session shows the keeper in
 the tackle-shop interior. Tap SHOP or wait about three seconds to enter.
 The opening title is still Project Bobber.
 
-The editable shop painting is `tools/bobber/tackle-shop.png`. Regenerate the
-interior and keeper with `python3 tools/bobber/pack_landscape.py shop` and
-`python3 tools/bobber/paint_shopkeeper.py` in a Pillow environment.
+The editable shop painting is `tools/bobber/tackle-shop.png` and the keeper
+sprite is `tools/bobber/shopkeeper.png`. Regenerate the interior and keeper with `python3 tools/bobber/pack_landscape.py shop` and
+`python3 tools/bobber/pack_shopkeeper.py` in a Pillow environment.
 
 ## Current milestone
 
