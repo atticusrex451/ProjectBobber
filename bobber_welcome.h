@@ -265,31 +265,59 @@ static void drawBobberTrophy(Arduino_Canvas *canvas, BobberSpecies species,
 
 #include "bobber_shop_ui.h"
 
+static void drawBobberTitleFloat(Arduino_Canvas *canvas) {
+  constexpr uint16_t edge = 0x1968, green = 0xAFE4, glow = 0xD7EB;
+  constexpr uint16_t orange = 0xEB24, shade = 0xAC43, band = 0xF7B9;
+  auto span = [canvas](int x, int y, int w, int h, uint16_t color) {
+    canvas->fillRect(233 + x * 4, 184 + y * 4, w * 4, h * 4, color);
+  };
+  span(-21, 27, 12, 1, 0x6431);
+  span(11, 27, 11, 1, 0x6431);
+  span(-16, 30, 30, 1, 0x42ED);
+  span(-7, 32, 18, 1, 0x294C);
+  span(-2, -2, 4, 8, edge);
+  span(-1, -2, 2, 7, glow);
+  static const int8_t halfWidth[] = {4,6,8,10,11,12,12,13,13,13,13,13,13,12,12,11,10,9,7,5};
+  for (int y = 0; y < 20; ++y) {
+    const int half = halfWidth[y];
+    span(-half, y + 6, 2 * half, 1, edge);
+    if (y == 0 || y == 19) continue;
+    const bool upper = y < 10;
+    span(1 - half, y + 6, 2 * half - 2, 1, upper ? green : orange);
+    if (y >= 7) span(half - 4, y + 6, 3, 1, upper ? 0x7D20 : shade);
+  }
+  span(-10, 15, 20, 2, band);
+  span(-7, 10, 5, 1, glow);
+  span(-9, 11, 3, 2, glow);
+  span(-9, 19, 2, 2, 0xFC8A);
+}
+
 static void renderBobberWelcome(Arduino_Canvas *canvas) {
-  const uint16_t navy = 0x08E4;
-  const uint16_t cream = 0xF7B9;
+  const uint16_t cream = BOBBER_CREAM;
   const uint16_t lime = 0xBFE0;
   const uint16_t orange = 0xFB00;
-  const uint16_t water = 0x2B8E;
 
   const bool fishing = bobberState == BOBBER_READY || bobberState == BOBBER_WAITING ||
                        bobberState == BOBBER_BITE || bobberState == BOBBER_FIGHT;
   if (fishing) drawBobberScene(canvas, true);
   else if (bobberState == BOBBER_CAUGHT || bobberState == BOBBER_ENDING)
     restoreBobberLandscape(canvas, 0, 0, 233, 233);
-  else canvas->fillScreen(navy);
+  else if (bobberState == BOBBER_TITLE)
+    blitBobberLandscape(canvas, BOBBER_BAY, 0, 0, 233, 233, false);
+  else blitBobberLandscape(canvas, bobberRegion, 0, 0, 233, 233, true);
   canvas->setTextColor(cream);
   if (renderBobberShop(canvas)) return;
   if (bobberState == BOBBER_ENDING || bobberState == BOBBER_LOST || bobberState == BOBBER_FIGHT) {
     if (bobberState == BOBBER_ENDING) {
-      bobberShopText(canvas, "THE END", 84, 3);
-      canvas->fillRoundRect(100, 138, 266, 101, 12, 0x1948);
+      bobberHeading(canvas, "THE END", 78);
+      bobberPanel(canvas, 100, 138, 266, 101, BOBBER_BRASS);
       drawBobberPaintedPortrait(canvas, BOBBER_IRON_MAW, 190, 2, true);
       bobberShopText(canvas, "All three legends landed", 252, 2);
       bobberShopText(canvas, "For Dad and his fishing buddy Thurl.", 290);
       bobberShopText(canvas, "There is always another day on the water.", 314);
     } else if (bobberState == BOBBER_LOST) {
-      bobberShopText(canvas, "THE LINE SNAPPED", 153, 3);
+      bobberPanel(canvas, 65, 137, 336, 139, BOBBER_BRASS);
+      bobberHeading(canvas, "THE LINE SNAPPED", 153);
       bobberShopText(canvas, "Release REEL when tension runs high.", 218);
       bobberShopText(canvas, "Basic bait is always available.", 244);
     } else {
@@ -312,60 +340,55 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
       if (progressWidth) canvas->fillRect(108, progressY, progressWidth, meterHeight, lime);
       bobberShopText(canvas, "Hold to reel. Release to ease tension.", 363);
     }
-    bobberShopButton(canvas, 143, 376, 180,
-                     bobberState == BOBBER_FIGHT ? (bobberFight.reeling ? "REELING" : "REEL") : "CONTINUE");
+    bobberPrimaryButton(canvas,
+                        bobberState == BOBBER_FIGHT ? (bobberFight.reeling ? "REELING" : "REEL") : "CONTINUE");
     canvas->setTextSize(1);
     canvas->flush();
     return;
   }
   if (bobberState == BOBBER_TRAVEL) {
-    canvas->setTextSize(3);
-    canvas->setCursor(152, 72);
-    canvas->print("SET SAIL");
-    canvas->setTextSize(1);
-    canvas->setCursor(158, 110);
-    canvas->print("A new shore. A new story.");
+    bobberHeading(canvas, "SET SAIL", 64);
     for (int i = 0; i < BOBBER_REGION_COUNT; ++i) {
-      const bool unlocked = bobberRegionUnlocked((BobberRegion)i);
+      const auto destination = (BobberRegion)i;
+      const bool unlocked = bobberRegionUnlocked(destination);
       const int y = 145 + i * 68;
-      canvas->fillRoundRect(87, y, 292, 56, 10,
-                            i == bobberRegion ? 0x336D : unlocked ? water : 0x1946);
-      canvas->setTextColor(unlocked ? cream : 0x94B2);
+      bobberPanel(canvas, 87, y, 292, 56, destination == bobberRegion ? BOBBER_BRASS : 0x5270,
+                  unlocked ? 0x1948 : 0x1927);
+      if (unlocked) {
+        drawBobberTravelThumbnail(canvas, destination, 98, y + 10);
+      } else {
+        canvas->fillRoundRect(98, y + 10, 44, 36, 5, 0x10E6);
+        canvas->drawRoundRect(115, y + 18, 10, 10, 4, BOBBER_BRASS);
+        canvas->fillRect(113, y + 25, 14, 11, BOBBER_BRASS);
+        canvas->fillRect(119, y + 28, 2, 5, BOBBER_INK);
+      }
+      canvas->setTextColor(unlocked ? cream : BOBBER_MUTED_TEXT);
       canvas->setTextSize(2);
-      canvas->setCursor(233 - strlen(bobberRegionNames[i]) * 6, y + 8);
-      canvas->print(bobberRegionNames[i]);
+      canvas->setCursor(151, y + 9);
+      canvas->print(destination == BOBBER_GROTTO ? "Thurl's Grotto" : bobberRegionNames[i]);
       canvas->setTextSize(1);
       char detail[48];
       if (unlocked) snprintf(detail, sizeof(detail), "%s | %d / 8 discovered",
-                              i == bobberRegion ? "Here" : "Visit", bobberDiscovered((BobberRegion)i));
-      else snprintf(detail, sizeof(detail), "%s", i == BOBBER_LAKE ?
+                              destination == bobberRegion ? "Here" : "Visit", bobberDiscovered(destination));
+      else snprintf(detail, sizeof(detail), "%s", destination == BOBBER_LAKE ?
                     "Land the Old Man to unlock" : "Land both main-area legends");
-      canvas->setCursor(233 - strlen(detail) * 3, y + 34);
+      canvas->setCursor(151, y + 34);
       canvas->print(detail);
     }
-    canvas->fillRoundRect(143, 376, 180, 48, 16, lime);
-    canvas->setTextColor(navy);
-    canvas->setTextSize(3);
-    canvas->setCursor(197, 389);
-    canvas->print("BACK");
+    bobberPrimaryButton(canvas, "BACK");
     canvas->setTextSize(1);
     canvas->flush();
     return;
   }
   if (bobberState == BOBBER_JOURNAL) {
-    canvas->setTextSize(3);
-    canvas->setCursor(125, 60);
-    canvas->print("TROPHY WALL");
-    canvas->setTextSize(1);
-    canvas->setCursor(233 - strlen(bobberRegionNames[bobberRegion]) * 3, 96);
-    canvas->print(bobberRegionNames[bobberRegion]);
+    bobberHeading(canvas, "TROPHY WALL", 52);
+    bobberShopText(canvas, bobberRegionNames[bobberRegion], 95);
     char pageLabel[24];
-    snprintf(pageLabel, sizeof(pageLabel), "%d / %d", bobberJournalPage + 1,
-             BOBBER_JOURNAL_PAGES);
-    canvas->setCursor(233 - strlen(pageLabel) * 3, 107);
-    canvas->print(pageLabel);
+    snprintf(pageLabel, sizeof(pageLabel), "%d / %d", bobberJournalPage + 1, BOBBER_JOURNAL_PAGES);
+    bobberShopText(canvas, pageLabel, 107);
     if (bobberJournalPage == 4) {
       const BobberSpecies legend = bobberLegends[bobberRegion];
+      bobberPanel(canvas, 77, 122, 312, 174, BOBBER_BRASS);
       drawBobberPaintedPortrait(canvas, legend, 192, 2, bobberBests[legend] != 0);
       canvas->setTextSize(2);
       canvas->setCursor(233 - strlen(bobberNames[legend]) * 6, 251);
@@ -399,6 +422,7 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
       if (rosterIndex >= BOBBER_REGULAR_COUNT) break;
       const int i = bobberRosters[bobberRegion][rosterIndex];
       const int y = 178 + slot * 128;
+      bobberPanel(canvas, 77, y - 61, 312, 119);
       drawBobberTrophy(canvas, (BobberSpecies)i, y - 34, bobberBests[i] != 0);
       canvas->setTextSize(2);
       canvas->setCursor(233 - strlen(bobberNames[i]) * 6, y);
@@ -417,33 +441,20 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
         canvas->print("Record not saved");
       }
     }
-    canvas->fillRoundRect(BOBBER_BUTTON_X, BOBBER_BUTTON_Y,
-                          BOBBER_BUTTON_W, BOBBER_BUTTON_H, 16, lime);
-    canvas->setTextColor(navy);
-    canvas->setTextSize(3);
-    canvas->setCursor(197, 389);
-    canvas->print("BACK");
-    for (int direction = 0; direction < 2; ++direction) {
-      const bool enabled = direction == 0 ? bobberJournalPage > 0 :
-                           bobberJournalPage + 1 < BOBBER_JOURNAL_PAGES;
-      const int x = direction == 0 ? 95 : 327;
-      canvas->fillRoundRect(x, 376, 44, 44, 10, enabled ? water : 0x1946);
-      canvas->setTextColor(enabled ? cream : 0x4A69);
-      canvas->setTextSize(3);
-      canvas->setCursor(x + 13, 388);
-      canvas->print(direction == 0 ? "<" : ">");
-    }
+    bobberPrimaryButton(canvas, "BACK");
+    bobberShopButton(canvas, 95, 376, 44, "<", bobberJournalPage > 0);
+    bobberShopButton(canvas, 327, 376, 44, ">", bobberJournalPage + 1 < BOBBER_JOURNAL_PAGES);
     canvas->setTextSize(1);
     canvas->flush();
     return;
   }
   if (bobberState == BOBBER_TITLE) {
-    canvas->setTextSize(2);
-    canvas->setCursor(191, 74);
-    canvas->print("PROJECT");
-    canvas->setTextSize(5);
-    canvas->setCursor(143, 103);
-    canvas->print("BOBBER");
+    canvas->setTextColor(BOBBER_BRASS);
+    bobberShopText(canvas, "PROJECT", 72, 2);
+    canvas->setTextColor(BOBBER_INK);
+    bobberShopText(canvas, "BOBBER", 106, 5);
+    canvas->setTextColor(cream);
+    bobberShopText(canvas, "BOBBER", 101, 5);
   } else {
     canvas->setTextSize(2);
     canvas->setCursor(233 - strlen(bobberRegionTitles[bobberRegion]) * 6, 82);
@@ -467,23 +478,11 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
     canvas->print("Travel not saved; retry");
   }
   if (bobberState == BOBBER_CAUGHT) {
-    canvas->fillRoundRect(62, 154, 342, 143, 14, 0x1948);
+    bobberPanel(canvas, 62, 154, 342, 143, bobberLegendCast ? BOBBER_BRASS : 0x5270);
     canvas->drawFastHLine(86, 286, 294, 0x4B0F);
     drawBobberPaintedPortrait(canvas, bobberSpecies, 222, 3, true);
   } else if (bobberState == BOBBER_TITLE) {
-  canvas->drawFastHLine(119, 283, 228, water);
-  canvas->drawFastHLine(143, 294, 180, water);
-  canvas->fillRoundRect(225, 169, 16, 31, 7, lime);
-  canvas->fillCircle(233, 238, 52, lime);
-  for (int y = 0; y <= 52; ++y) {
-    for (int x = -52; x <= 52; ++x) {
-      if (x * x + y * y <= 52 * 52)
-        canvas->fillRect(233 + x, 238 + y, 1, 1, orange);
-    }
-  }
-  canvas->fillRect(182, 235, 103, 5, cream);
-  canvas->fillCircle(215, 211, 7, cream);
-
+    drawBobberTitleFloat(canvas);
   }
 
   canvas->setTextColor(cream);
@@ -537,13 +536,8 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
     canvas->setCursor(125, 340);
     canvas->print("A lot of relaxing.");
   } else {
-    canvas->fillRoundRect(95, 304, 134, 44, 12, water);
-    canvas->fillRoundRect(237, 304, 134, 44, 12, water);
-    canvas->setTextSize(2);
-    canvas->setCursor(120, 318);
-    canvas->print("JOURNAL");
-    canvas->setCursor(280, 318);
-    canvas->print("DOCK");
+    bobberShopButton(canvas, 95, 304, 134, "JOURNAL");
+    bobberShopButton(canvas, 237, 304, 134, "DOCK");
     char record[64];
     if (bobberEconomy.count >= BOBBER_COOLER_CAPACITY) {
       snprintf(record, sizeof(record), "Cooler full. Sell or release fish.");
@@ -557,9 +551,6 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
     canvas->setCursor(233 - strlen(record) * 3, 355);
     canvas->print(record);
   }
-  canvas->fillRoundRect(BOBBER_BUTTON_X, BOBBER_BUTTON_Y,
-                        BOBBER_BUTTON_W, BOBBER_BUTTON_H, 16, lime);
-  canvas->setTextColor(navy);
   const bool canCast = bobberState == BOBBER_READY || bobberState == BOBBER_CAUGHT;
   const bool legendLanded = bobberState == BOBBER_CAUGHT && bobberLegendCast;
   const char *button = legendLanded ?
@@ -571,10 +562,7 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
                        canCast && bobberEconomyUnreadable ? "SAVE ERROR" :
                        canCast && bobberEconomyDirty ? "RETRY SAVE" :
                        canCast && bobberEconomy.count >= BOBBER_COOLER_CAPACITY ? "COOLER" : "CAST";
-  const int buttonSize = strlen(button) > 6 ? 2 : 3;
-  canvas->setTextSize(buttonSize);
-  canvas->setCursor(233 - strlen(button) * 3 * buttonSize, buttonSize == 3 ? 389 : 392);
-  canvas->print(button);
+  bobberPrimaryButton(canvas, button);
   canvas->setTextSize(1);
   canvas->flush();
 }

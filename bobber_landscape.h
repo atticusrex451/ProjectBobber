@@ -29,8 +29,9 @@ static constexpr BobberLandscape bobberLandscapes[] = {
   {bobberGrottoRows, bobberGrottoRuns, bobberGrottoPalette},
 };
 
-static void restoreBobberLandscape(Arduino_Canvas *canvas, int left, int top, int right, int bottom) {
-  const auto &art = bobberLandscapes[bobberRegion];
+static void blitBobberLandscape(Arduino_Canvas *canvas, BobberRegion region,
+                                int left, int top, int right, int bottom, bool dim) {
+  const auto &art = bobberLandscapes[region];
   constexpr int stride = 466;
   auto *pixels = canvas->getFramebuffer();
   for (int y = top; y < bottom; ++y) {
@@ -39,12 +40,31 @@ static void restoreBobberLandscape(Arduino_Canvas *canvas, int left, int top, in
     for (int run = art.rows[y]; run < art.rows[y + 1] && x < right; ++run) {
       const uint16_t packed = art.runs[run];
       const int end = x + (packed >> 8);
-      const uint16_t color = art.palette[packed & 255];
+      const uint16_t original = art.palette[packed & 255];
+      const uint16_t color = dim ? (original >> 1) & 0x7BEF : original;
       for (int pixel = x < left ? left : x; pixel < end && pixel < right; ++pixel) {
         const int px = 2 * pixel;
         row[px] = row[px + 1] = row[px + stride] = row[px + stride + 1] = color;
       }
       x = end;
+    }
+  }
+}
+
+static void restoreBobberLandscape(Arduino_Canvas *canvas, int left, int top, int right, int bottom) {
+  blitBobberLandscape(canvas, bobberRegion, left, top, right, bottom, false);
+}
+
+static void drawBobberTravelThumbnail(Arduino_Canvas *canvas, BobberRegion region, int x, int y) {
+  const auto &art = bobberLandscapes[region];
+  for (int row = 0; row < 36; ++row) {
+    const int sourceY = 20 + row * 5;
+    int run = art.rows[sourceY];
+    int end = art.runs[run] >> 8;
+    for (int column = 0; column < 44; ++column) {
+      const int sourceX = 8 + column * 5;
+      while (sourceX >= end) end += art.runs[++run] >> 8;
+      canvas->drawFastHLine(x + column, y + row, 1, art.palette[art.runs[run] & 255]);
     }
   }
 }

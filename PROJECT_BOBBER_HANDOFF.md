@@ -43,6 +43,14 @@ The editable painting is `tools/bobber/thurls-grotto.png`. Regenerate assets
 with `python3 tools/bobber/pack_landscape.py grotto` and
 `python3 tools/bobber/paint_grotto_fish.py` in a Pillow environment.
 
+## Interface art pass
+
+The title looks out over Chincoteague Bay, with a pixel-art bobber. The dock,
+shop, cooler, recipes, travel, and trophy wall use the current biome’s painting
+behind dark panels. Travel cards show miniature paintings for unlocked
+destinations. Fishing, fight and menu screens share the same button styling
+and retain their existing touch targets.
+
 ## Current milestone
 
 The full story loop is playable. From READY, open DOCK → SHOP → SUPPLIES for
