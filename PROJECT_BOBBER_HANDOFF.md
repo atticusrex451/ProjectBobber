@@ -62,6 +62,20 @@ The editable shop painting is `tools/bobber/tackle-shop.png` and the keeper
 sprite is `tools/bobber/shopkeeper.png`. Regenerate the interior and keeper with `python3 tools/bobber/pack_landscape.py shop` and
 `python3 tools/bobber/pack_shopkeeper.py` in a Pillow environment.
 
+## Physical handheld build
+
+Use the Waveshare ESP32-S3-Touch-AMOLED-1.75 Standard build settings in the
+README. For Arduino CLI, stage the sketch in a directory named `TamaPoke`
+so that it matches `TamaPoke.ino`. A hardware-target build was verified with
+Arduino ESP32 3.3.0, Arduino_GFX 1.6.9, SensorLib 0.5.2, and XPowersLib 0.3.3.
+The older `z_battle.cpp` is retained in `docs` because Arduino compiles every
+root-level .cpp and its symbols duplicated the active `battle.cpp`.
+
+Flash separate ESP32-S3 bootloader, partition table, OTA initializer, and app
+images at 0x0, 0x8000, 0xe000, and 0x10000 respectively. The 0x9000–0xdfff NVS
+range is outside those writes for this partition scheme. Physical playtesting
+requires the board connected by USB to the machine running the upload.
+
 ## Current milestone
 
 The full story loop is playable. From READY, open DOCK → SHOP → SUPPLIES for
