@@ -719,8 +719,10 @@ static void updateBobberFishing(Arduino_Canvas *canvas, uint32_t now) {
   if ((bobberState == BOBBER_READY || bobberState == BOBBER_WAITING ||
        bobberState == BOBBER_BITE) && now - bobberAnimationAt >= 150) {
     bobberAnimationAt = now;
-    bobberAnimationFrame = (bobberAnimationFrame + 1) % (bobberHasPaintedWater(bobberRegion) ? 64 : 8);
-    // Redraw only the scene rectangle, leaving labels and touch targets intact.
+    const int cycle = bobberRegion == BOBBER_LAKE ? BOBBER_LAKE_ANIMATION_FRAMES :
+                      bobberRegion == BOBBER_BAY ? 64 : 8;
+    bobberAnimationFrame = (bobberAnimationFrame + 1) % cycle;
+    // Redraw only the animated patches, leaving labels and touch targets intact.
     drawBobberScene(canvas);
     canvas->flush();
   }

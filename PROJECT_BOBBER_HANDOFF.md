@@ -23,7 +23,8 @@ regular portraits or the Old Man to regenerate `bobber_bay_portraits.h`.
 ## Blue Mountain Lake art pass
 
 The lake has an original, AI-assisted mountain landscape with mist, layered
-ridges and cool reflections. A loon occasionally crosses the water. The
+ridges and cool reflections. A flock periodically crosses the upper sky and
+a loon occasionally crosses the water. The
 backdrop stays visible during fights and gives the eight lake species and the
 Summit Leviathan a shared catch card. Each portrait also has a trophy silhouette.
 

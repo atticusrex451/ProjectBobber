@@ -116,12 +116,18 @@ int main() {
         assert(canvas.fb[y * 466 + x] == still[y * 466 + x]);
     if (region == BOBBER_LAKE) {
       Arduino_Canvas fresh(466, 466, nullptr);
-      for (uint32_t frame = 2; frame <= 64; ++frame) {
+      bool sawFlock = false;
+      for (uint32_t frame = 2; frame <= BOBBER_LAKE_ANIMATION_FRAMES; ++frame) {
         updateBobberFishing(&canvas, frame * 150);
         renderBobberWelcome(&fresh);
-        assert(canvas.fb == fresh.fb); // the loon and wake leave no redraw trails
+        assert(canvas.fb == fresh.fb); // wildlife leaves no redraw trails
+        const auto skyEnd = canvas.fb.begin() + 2 * BOBBER_FLOCK_SKY_BOTTOM * 466;
+        const bool skyChanged = !std::equal(canvas.fb.begin(), skyEnd, still.begin());
+        if (skyChanged) assert(frame >= BOBBER_FLOCK_START && frame < BOBBER_FLOCK_END);
+        sawFlock |= skyChanged;
+        assert(std::equal(skyEnd, canvas.fb.begin() + y0 * 466, still.begin() + (skyEnd - canvas.fb.begin())));
       }
-      assert(canvas.fb == still && g_seed == animationSeed);
+      assert(sawFlock && canvas.fb == still && g_seed == animationSeed);
     }
     openLegend();
     tap(233, 326);

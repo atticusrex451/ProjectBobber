@@ -10,6 +10,12 @@ static constexpr int BOBBER_LANDSCAPE_PATCH_Y = 101;
 static constexpr int BOBBER_LANDSCAPE_PATCH_RIGHT = 180;
 static constexpr int BOBBER_LANDSCAPE_PATCH_BOTTOM = 152;
 
+static constexpr int BOBBER_LAKE_ANIMATION_FRAMES = 160;
+static constexpr int BOBBER_FLOCK_START = 36;
+static constexpr int BOBBER_FLOCK_END = 78;
+static constexpr int BOBBER_FLOCK_SKY_TOP = 14;
+static constexpr int BOBBER_FLOCK_SKY_BOTTOM = 40;
+
 static bool bobberHasPaintedWater(BobberRegion region) {
   return region == BOBBER_BAY || region == BOBBER_LAKE;
 }
@@ -75,6 +81,30 @@ static void drawBobberPaintedScene(Arduino_Canvas *canvas, bool full) {
     }
   };
 
+  if (lake && bobberState != BOBBER_FIGHT) {
+    const int frame = bobberAnimationFrame;
+    // Restore one extra frame after the flock exits. This band ends above the title.
+    if (!full && frame >= BOBBER_FLOCK_START && frame <= BOBBER_FLOCK_END)
+      restoreBobberLandscape(canvas, 0, BOBBER_FLOCK_SKY_TOP, 233, BOBBER_FLOCK_SKY_BOTTOM);
+    if (frame >= BOBBER_FLOCK_START && frame < BOBBER_FLOCK_END) {
+      const int travel = frame - BOBBER_FLOCK_START;
+      static const int8_t formation[][3] = {
+        {0, 0, 4}, {-9, -4, 3}, {-11, 5, 4}, {-19, -7, 3},
+        {-22, 9, 3}, {-29, -8, 2}, {-34, 6, 3},
+      };
+      constexpr uint16_t feathers = 0x10C5;
+      for (int i = 0; i < 7; ++i) {
+        const auto &bird = formation[i];
+        const int x = -8 + 7 * travel + bird[0];
+        const int y = 28 + bird[1] - travel / 12;
+        const int wing = ((travel + i) % 4 < 2) ? -2 : 1;
+        line(x - bird[2], y + wing, x, y, feathers);
+        line(x, y, x + bird[2] - 1, y + wing, feathers);
+        span(x, y, 2, 1, feathers);
+      }
+    }
+  }
+
   // Broken reflections carry the skiff's shape into the water.
   span(69, hull + 9, 47, 2, reflection);
   span(75 + drift, hull + 12, 32, 1, reflection);
@@ -95,8 +125,9 @@ static void drawBobberPaintedScene(Arduino_Canvas *canvas, bool full) {
   }
 
   // A loon sometimes cuts a quiet wake across the far side of the lake.
-  if (lake && bobberState != BOBBER_FIGHT && bobberAnimationFrame >= 48) {
-    const int x = 145 + (bobberAnimationFrame - 48);
+  if (lake && bobberState != BOBBER_FIGHT && bobberAnimationFrame >= 92 &&
+      bobberAnimationFrame < 108) {
+    const int x = 145 + (bobberAnimationFrame - 92);
     span(x - 9, 120, 9, 1, glint);
     span(x, 118, 8, 2, ink);
     span(x + 5, 115, 3, 4, ink);
