@@ -213,149 +213,41 @@ static void drawBobberFlounder(Arduino_Canvas *canvas, int centerY, int scale, b
   span(-18, 5, 5, 2, shade);
 }
 
-static void drawBobberCroaker(Arduino_Canvas *canvas) {
-  const uint16_t dark = 0x5288, silver = 0xCE57, bronze = 0xAC6E;
-  canvas->fillTriangle(282, 231, 329, 203, 329, 259, bronze);
-  canvas->fillTriangle(200, 206, 228, 178, 267, 211, bronze);
-  canvas->fillTriangle(223, 250, 255, 274, 274, 247, bronze);
-  for (int x = -76; x <= 76; ++x) {
-    int h = 32 * (76 * 76 - x * x) / (76 * 76);
-    canvas->drawFastVLine(224 + x, 232 - h, h * 2 + 1, dark);
-    if (h > 2) canvas->drawFastVLine(224 + x, 234 - h, h * 2 - 3, silver);
-  }
-  for (int x = 204; x < 280; x += 12)
-    canvas->drawLine(x, 216, x + 8, 240, bronze);
-  canvas->drawLine(185, 214, 194, 232, dark);
-  canvas->drawLine(194, 232, 185, 249, dark);
-  canvas->fillTriangle(203, 235, 225, 240, 210, 251, bronze);
-  canvas->fillCircle(171, 224, 5, dark);
-  canvas->fillCircle(170, 223, 2, 0xF7B9);
-  canvas->drawLine(148, 234, 161, 237, dark);
-}
-
-// Original Spot profile: yellow fins, silver body and its dark shoulder spot.
-static void drawBobberSpot(Arduino_Canvas *canvas) {
-  const uint16_t silver = 0xD6B8, gold = 0xCDA8, dark = 0x4208;
-  canvas->fillTriangle(278, 232, 320, 209, 320, 255, gold);
-  canvas->fillTriangle(208, 213, 229, 187, 267, 216, gold);
-  canvas->fillTriangle(218, 250, 244, 271, 266, 247, gold);
-  for (int x = -65; x <= 65; ++x) {
-    const int h = 30 * (65 * 65 - x * x) / (65 * 65);
-    canvas->drawFastVLine(224 + x, 232 - h, h * 2 + 1, dark);
-    if (h > 2) canvas->drawFastVLine(224 + x, 234 - h, h * 2 - 3, silver);
-  }
-  for (int x = 229; x <= 267; x += 10)
-    canvas->drawLine(x, 216, x + 8, 244, gold);
-  canvas->drawLine(191, 215, 198, 232, dark);
-  canvas->drawLine(198, 232, 191, 249, dark);
-  canvas->fillCircle(210, 220, 7, dark);
-  canvas->fillCircle(177, 224, 4, dark);
-  canvas->fillCircle(176, 223, 1, silver);
-}
-
-// Original bay profiles, shared by catch reveals and miniature trophies.
-// Coordinates scale together so undiscovered silhouettes retain each fish's shape.
-static void drawBobberBayFish(Arduino_Canvas *canvas, BobberSpecies species,
-                               int centerY, int divisor, bool caught) {
-  const uint16_t shadow = 0x4A69;
-  const uint16_t dark = caught ? 0x2945 : shadow;
-  uint16_t body = 0xCE98, fin = 0x9C6D;
-  int height = 29;
-  if (species == BOBBER_WEAKFISH) { body = 0xB5B6; fin = 0xDDA9; }
-  if (species == BOBBER_STRIPED_BASS) { body = 0xC638; fin = 0x736D; height = 33; }
-  if (species == BOBBER_SPECKLED_TROUT) { body = 0x9DB2; fin = 0xB56C; }
-  if (species == BOBBER_BLACK_DRUM) { body = 0x9491; fin = 0x630B; height = 39; }
-  if (species == BOBBER_COBIA) { body = 0x8C6B; fin = 0x5288; height = 22; }
-  if (!caught) body = fin = shadow;
-  auto px = [&](int x) { return 233 + x / divisor; };
-  auto py = [&](int y) { return centerY + y / divisor; };
-  auto line = [&](int x1, int y1, int x2, int y2, uint16_t color) {
-    canvas->drawLine(px(x1), py(y1), px(x2), py(y2), color);
-  };
-  auto triangle = [&](int x1, int y1, int x2, int y2, int x3, int y3, uint16_t color) {
-    canvas->fillTriangle(px(x1), py(y1), px(x2), py(y2), px(x3), py(y3), color);
-  };
-  // Forked tail and two dorsal sections; cobia has a low, swept profile.
-  triangle(65, 0, 102, -28, 94, 0, fin);
-  triangle(65, 0, 94, 0, 102, 28, fin);
-  triangle(-32, -height + 5, -16, -height - 20, 9, -height + 3, fin);
-  triangle(6, -height + 3, 28, -height - 10, 62, -9, fin);
-  triangle(0, height - 4, 29, height + 15, 53, 10, fin);
-  for (int x = -82; x <= 76; ++x) {
-    const int h = height * (80 * 80 - x * x) / (80 * 80);
-    if (h < 0) continue;
-    line(x, -h, x, h, dark);
-    if (h > 2) line(x, -h + 2, x, h - 2, body);
-  }
-  if (!caught) return;
-  if (species == BOBBER_STRIPED_BASS) {
-    for (int y = -18; y <= 18; y += 6) line(-42, y, 57, y, dark);
-  } else if (species == BOBBER_BLACK_DRUM) {
-    // Broad juvenile-style bars and a small chin barbel.
-    for (int x = -35; x <= 45; x += 20)
-      for (int w = 0; w < 6; ++w) line(x + w, -27, x + w, 27, fin);
-    line(-68, 17, -63, 29, dark);
-  } else if (species == BOBBER_COBIA) {
-    for (int y = -6; y <= 4; ++y) line(-60, y, 67, y, dark);
-    line(-48, 9, 54, 9, 0xE6F8);
-  } else {
-    // Weakfish: small oblique flecks; seatrout: bold spots extending onto fins.
-    for (int x = -28; x <= 48; x += 15) {
-      for (int y = -12; y <= 12; y += 12) {
-        if (species == BOBBER_WEAKFISH) line(x, y, x + 3, y - 3, fin);
-        else canvas->fillCircle(px(x), py(y), divisor == 1 ? 3 : 1, dark);
-      }
-    }
-    if (species == BOBBER_SPECKLED_TROUT) {
-      canvas->fillCircle(px(88), py(-15), divisor == 1 ? 3 : 1, dark);
-      canvas->fillCircle(px(29), py(-32), divisor == 1 ? 3 : 1, dark);
-    }
-  }
-  line(-49, -18, -40, 0, dark);
-  line(-40, 0, -49, 18, dark);
-  triangle(-30, 4, -7, 11, -24, 23, fin);
-  canvas->fillCircle(px(-63), py(-9), divisor == 1 ? 5 : 2, dark);
-  canvas->fillCircle(px(-64), py(-10), 1, 0xF7B9);
-  line(-79, 5, -65, 8, dark);
-}
-
 #include "bobber_fish_art.h"
+#include "bobber_bay_portraits.h"
 
-// Small trophy portraits: identical outlines stay recognizable before discovery.
+static bool bobberHasBayPortrait(BobberSpecies species) {
+  return species < BOBBER_YELLOW_PERCH || species == BOBBER_OLD_MAN;
+}
+
+template <size_t N>
+static void drawBobberPortraitSpans(Arduino_Canvas *canvas, const BobberPortraitSpan (&spans)[N],
+                                    int centerY, int scale, bool caught) {
+  for (const auto &span : spans)
+    canvas->fillRect(233 + (span.x - 55) * scale, centerY + (span.y - 23) * scale,
+                     span.width * scale, scale, caught ? span.color : 0x4A69);
+}
+
+static void drawBobberBayPortrait(Arduino_Canvas *canvas, BobberSpecies species,
+                                  int centerY, int scale, bool caught) {
+  switch (species) {
+    case BOBBER_FLOUNDER: drawBobberFlounder(canvas, centerY, scale, caught); break;
+    case BOBBER_CROAKER: drawBobberPortraitSpans(canvas, bobberCroakerPortrait, centerY, scale, caught); break;
+    case BOBBER_SPOT: drawBobberPortraitSpans(canvas, bobberSpotPortrait, centerY, scale, caught); break;
+    case BOBBER_WEAKFISH: drawBobberPortraitSpans(canvas, bobberWeakfishPortrait, centerY, scale, caught); break;
+    case BOBBER_STRIPED_BASS: drawBobberPortraitSpans(canvas, bobberStripedBassPortrait, centerY, scale, caught); break;
+    case BOBBER_SPECKLED_TROUT: drawBobberPortraitSpans(canvas, bobberSpeckledTroutPortrait, centerY, scale, caught); break;
+    case BOBBER_BLACK_DRUM: drawBobberPortraitSpans(canvas, bobberBlackDrumPortrait, centerY, scale, caught); break;
+    case BOBBER_COBIA: drawBobberPortraitSpans(canvas, bobberCobiaPortrait, centerY, scale, caught); break;
+    case BOBBER_OLD_MAN: drawBobberPortraitSpans(canvas, bobberOldManPortrait, centerY, scale, caught); break;
+    default: break;
+  }
+}
+
 static void drawBobberTrophy(Arduino_Canvas *canvas, BobberSpecies species,
                               int centerY, bool caught) {
-  if (species >= BOBBER_YELLOW_PERCH) {
-    drawBobberOtherFish(canvas, species, centerY, 2, caught);
-    return;
-  }
-  if (species >= BOBBER_WEAKFISH) {
-    drawBobberBayFish(canvas, species, centerY, 2, caught);
-    return;
-  }
-  if (species == BOBBER_FLOUNDER) {
-    drawBobberFlounder(canvas, centerY, 1, caught);
-    return;
-  }
-  const uint16_t silhouette = 0x4A69;
-  const uint16_t edge = caught ? 0x39E5 : silhouette;
-  const uint16_t body = caught ? 0xCE57 : silhouette;
-  const uint16_t fin = caught ? 0xAC6E : silhouette;
-  canvas->fillTriangle(268, centerY, 292, centerY - 16, 292, centerY + 16, fin);
-  canvas->fillTriangle(216, centerY - 10, 232, centerY - 28, 254, centerY - 9, fin);
-  canvas->fillTriangle(225, centerY + 10, 245, centerY + 25, 258, centerY + 9, fin);
-  const int height = 17;
-  for (int x = -48; x <= 48; ++x) {
-    const int h = height * (48 * 48 - x * x) / (48 * 48);
-    canvas->drawFastVLine(224 + x, centerY - h, h * 2 + 1, edge);
-    if (h > 2) canvas->drawFastVLine(224 + x, centerY - h + 2, h * 2 - 3, body);
-  }
-  if (!caught) return; // No eye, gill or markings until this species is caught.
-  canvas->fillCircle(190, centerY - 5, 3, edge);
-  canvas->drawLine(201, centerY - 10, 207, centerY, edge);
-  canvas->drawLine(207, centerY, 201, centerY + 10, edge);
-  for (int x = 218; x <= 250; x += 8)
-    canvas->drawLine(x, centerY - 9, x + 4, centerY + 7, fin);
-  if (species == BOBBER_SPOT) canvas->fillCircle(214, centerY - 6, 5, edge);
+  if (bobberHasBayPortrait(species)) drawBobberBayPortrait(canvas, species, centerY, 1, caught);
+  else drawBobberOtherFish(canvas, species, centerY, 2, caught);
 }
 
 // Original pixel scene, animated in small steps without blocking touch.
@@ -458,9 +350,9 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
   const bool bayFishing = bobberRegion == BOBBER_BAY &&
                          (bobberState == BOBBER_READY || bobberState == BOBBER_WAITING ||
                           bobberState == BOBBER_BITE || bobberState == BOBBER_FIGHT);
-  const bool bayFlounder = bobberState == BOBBER_CAUGHT && bobberSpecies == BOBBER_FLOUNDER;
+  const bool bayCatch = bobberState == BOBBER_CAUGHT && bobberHasBayPortrait(bobberSpecies);
   if (bayFishing) drawBobberScene(canvas, true);
-  else if (bayFlounder) restoreBobberBay(canvas, 0, 0, 233, 233);
+  else if (bayCatch) restoreBobberBay(canvas, 0, 0, 233, 233);
   else canvas->fillScreen(navy);
   canvas->setTextColor(cream);
   if (renderBobberShop(canvas)) return;
@@ -549,7 +441,8 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
     canvas->print(pageLabel);
     if (bobberJournalPage == 4) {
       const BobberSpecies legend = bobberLegends[bobberRegion];
-      drawBobberOtherFish(canvas, legend, 192, 1, bobberBests[legend] != 0);
+      if (bobberHasBayPortrait(legend)) drawBobberBayPortrait(canvas, legend, 192, 2, bobberBests[legend] != 0);
+      else drawBobberOtherFish(canvas, legend, 192, 1, bobberBests[legend] != 0);
       canvas->setTextSize(2);
       canvas->setCursor(233 - strlen(bobberNames[legend]) * 6, 251);
       canvas->print(bobberNames[legend]);
@@ -650,20 +543,16 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
     canvas->print("Travel not saved; retry");
   }
   // Water ripples and a two-tone float, kept inside the circular bezel.
-  if (!bayFishing && !bayFlounder) {
+  if (!bayFishing && !bayCatch) {
     canvas->drawFastHLine(119, 283, 228, water);
     canvas->drawFastHLine(143, 294, 180, water);
   }
   if (bobberState == BOBBER_CAUGHT) {
-    if (bobberSpecies >= BOBBER_YELLOW_PERCH) drawBobberOtherFish(canvas, bobberSpecies, 232, 1, true);
-    else if (bobberSpecies >= BOBBER_WEAKFISH) drawBobberBayFish(canvas, bobberSpecies, 232, 1, true);
-    else if (bobberSpecies == BOBBER_SPOT) drawBobberSpot(canvas);
-    else if (bobberSpecies == BOBBER_CROAKER) drawBobberCroaker(canvas);
-    else {
-      canvas->fillRoundRect(62, 158, 342, 132, 14, 0x1948);
-      canvas->drawFastHLine(86, 278, 294, 0x4B0F);
-      drawBobberFlounder(canvas, 222, 3, true);
-    }
+    if (bayCatch) {
+      canvas->fillRoundRect(62, 154, 342, 143, 14, 0x1948);
+      canvas->drawFastHLine(86, 286, 294, 0x4B0F);
+      drawBobberBayPortrait(canvas, bobberSpecies, 222, 3, true);
+    } else drawBobberOtherFish(canvas, bobberSpecies, 232, 1, true);
   } else if (bobberState != BOBBER_TITLE) {
     if (!bayFishing) drawBobberScene(canvas);
   } else {

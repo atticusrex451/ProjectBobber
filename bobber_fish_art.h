@@ -24,7 +24,6 @@ static void drawBobberOtherFish(Arduino_Canvas *canvas, BobberSpecies species,
     case BOBBER_GILDED_RAVEN: body = 0x2127; fin = 0xE609; length = 67; height = 34; break;
     case BOBBER_CORAL_PROWLER: body = 0x72F1; fin = 0x3D73; height = 31; break;
     case BOBBER_POWDER_EEL: body = 0x18E5; fin = 0x528A; length = 99; height = 12; break;
-    case BOBBER_OLD_MAN: body = 0xC3AA; fin = 0x8A87; length = 89; height = 38; break;
     case BOBBER_LEVIATHAN: body = 0x8CD3; fin = 0x528C; length = 99; height = 24; break;
     case BOBBER_IRON_MAW: body = 0x528B; fin = 0xE5E8; length = 88; height = 38; break;
     default: return;
@@ -152,10 +151,6 @@ static void drawBobberOtherFish(Arduino_Canvas *canvas, BobberSpecies species,
       circle(-78, -12, 5, 0xFC40); circle(-78, -12, 2, dark);
       line(-97, -5, -78, 0, 0xAC4C);
       return;
-    case BOBBER_OLD_MAN:
-      circle(58, -1, 7, dark); // red drum tail spot, with old scars
-      for (int x = -24; x <= 10; x += 15) line(x, -15, x + 9, 12, 0xE5F1);
-      break;
     case BOBBER_LEVIATHAN:
       for (int x = -35; x <= 65; x += 17)
         triangle(x - 5, -9, x, -19, x + 5, -9, 0xDEFA);

@@ -6,14 +6,19 @@ Updated November 21, 2026. The earlier sections below record historical mileston
 
 The Bay now has an original, AI-assisted marsh painting, a smaller animated
 skiff, broken reflections, and a hand-drawn Summer Flounder portrait shared
-with the trophy wall. The Bay stays visible during fights. Art uses a 233 × 233
+with the trophy wall. Its seven neighbors and the Old Man of the Mud now use
+the same pixel scale and catch card, with species-specific shapes and markings.
+Their silhouettes, trophy wall entries and cooler portraits use the same art.
+The Bay stays visible during fights. Art uses a 233 × 233
 pixel grid at 2× scale, with native-resolution text and touch controls. Lake
 and Grotto are still on their earlier artwork.
 
 The editable indexed painting is `tools/bobber/chincoteague.png`. After
 editing it, run `python3 tools/bobber/pack_bay_art.py` with Pillow to regenerate
 `bobber_bay_background.h`. Normal firmware and emulator builds use the packed
-header and don't require Pillow or an SD card.
+header and don't require Pillow or an SD card. Run
+`python3 tools/bobber/paint_bay_fish.py` with Pillow after editing the seven
+regular portraits or the Old Man to regenerate `bobber_bay_portraits.h`.
 
 ## Current milestone
 

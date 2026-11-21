@@ -229,13 +229,19 @@ int main() {
   nvs() = completeSave;
   loadBobberRecord();
 
-  // All 19 new profiles render distinctly and never roll RNG or modify records.
+  // Every portrait renders distinctly without changing RNG or records.
   const auto portraitSeed = g_seed;
   std::vector<std::vector<uint16_t>> portraits;
-  for (int i = BOBBER_YELLOW_PERCH; i < BOBBER_SPECIES_COUNT; ++i) {
+  std::vector<std::vector<uint16_t>> baySilhouettes;
+  for (int i = 0; i < BOBBER_SPECIES_COUNT; ++i) {
     canvas.fillScreen(0);
     drawBobberTrophy(&canvas, (BobberSpecies)i, 144, false);
     const auto silhouette = canvas.fb;
+    if (bobberHasBayPortrait((BobberSpecies)i)) {
+      assert(std::find(silhouette.begin(), silhouette.end(), 0x4A69) != silhouette.end());
+      for (const auto &previous : baySilhouettes) assert(silhouette != previous);
+      baySilhouettes.push_back(silhouette);
+    }
     canvas.fillScreen(0);
     drawBobberTrophy(&canvas, (BobberSpecies)i, 144, true);
     assert(canvas.fb != silhouette);
