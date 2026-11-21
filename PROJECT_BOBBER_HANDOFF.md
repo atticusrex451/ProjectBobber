@@ -55,7 +55,8 @@ and retain their existing touch targets.
 
 The title bobber drops, splashes, and settles into a gentle loop. PLAY works
 during the animation. The first shop visit per session shows the keeper in
-the tackle-shop interior. Tap SHOP or wait about three seconds to enter.
+the tackle-shop interior, where the keeper raises his hand for a thumbs-up.
+Tap SHOP or wait about three seconds to enter.
 The opening title is still Project Bobber.
 
 The editable shop painting is `tools/bobber/tackle-shop.png` and the keeper
@@ -75,6 +76,17 @@ Flash separate ESP32-S3 bootloader, partition table, OTA initializer, and app
 images at 0x0, 0x8000, 0xe000, and 0x10000 respectively. The 0x9000–0xdfff NVS
 range is outside those writes for this partition scheme. Physical playtesting
 requires the board connected by USB to the machine running the upload.
+
+## Readable counters and catch navigation
+
+The wallet and cooler show large icon counters. Fish Tale in the shop shows
+an angler's story or a fish fact. ANOTHER picks a different entry. A regular
+catch offers CAST AGAIN or BACK to return to the main fishing screen.
+
+Fact references: [NOAA Fisheries summer flounder](https://www.fisheries.noaa.gov/species/summer-flounder/science),
+[USFWS lake sturgeon](https://www.fws.gov/species/lake-sturgeon-acipenser-fulvescens),
+[Wisconsin DNR sturgeon scutes](https://dnr.wisconsin.gov/topic/Fishing/sturgeon/LakeSturgeon.html),
+and [NC Wildlife pumpkinseed](https://www.ncwildlife.gov/species/pumpkinseed).
 
 ## Current milestone
 

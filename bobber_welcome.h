@@ -11,7 +11,7 @@
 
 enum BobberState { BOBBER_TITLE, BOBBER_JOURNAL, BOBBER_TRAVEL, BOBBER_DOCK, BOBBER_COOLER, BOBBER_SHOP, BOBBER_SELL_FISH, BOBBER_CONFIRM,
                    BOBBER_READY, BOBBER_WAITING, BOBBER_BITE, BOBBER_CAUGHT, BOBBER_SUPPLIES, BOBBER_RECIPE,
-                   BOBBER_FIGHT, BOBBER_LOST, BOBBER_ENDING, BOBBER_SHOP_INTRO };
+                   BOBBER_FIGHT, BOBBER_LOST, BOBBER_ENDING, BOBBER_SHOP_INTRO, BOBBER_FISH_TALE };
 static BobberState bobberState = BOBBER_TITLE;
 static uint32_t bobberCastAt = 0;
 static uint32_t bobberAnimationAt = 0;
@@ -19,6 +19,7 @@ static uint8_t bobberAnimationFrame = 0;
 static uint32_t bobberTitleAt = 0;
 static uint8_t bobberTitleFrame = 0;
 static uint32_t bobberShopIntroAt = 0;
+static uint8_t bobberShopIntroFrame = 0;
 static bool bobberShopWelcomed = false;
 static constexpr uint32_t BOBBER_SHOP_INTRO_MS = 3300;
 // Whole ounces avoid rounding when displaying pounds and ounces.
@@ -120,6 +121,11 @@ static const int BOBBER_BUTTON_Y = 376;
 static const int BOBBER_BUTTON_W = 180;
 static const int BOBBER_BUTTON_H = 48;
 
+static constexpr int BOBBER_RECAST_X = 95;
+static constexpr int BOBBER_RECAST_W = 164;
+static constexpr int BOBBER_CATCH_BACK_X = 267;
+static constexpr int BOBBER_CATCH_BACK_W = 104;
+
 static bool bobberButtonContains(int16_t x, int16_t y) {
   return x >= BOBBER_BUTTON_X && x < BOBBER_BUTTON_X + BOBBER_BUTTON_W &&
          y >= BOBBER_BUTTON_Y && y < BOBBER_BUTTON_Y + BOBBER_BUTTON_H;
@@ -129,6 +135,12 @@ static int bobberShopTouchTarget(int16_t x, int16_t y);
 
 // Journal is available while ready, so browsing cannot interrupt a cast.
 static int bobberTouchTarget(int16_t x, int16_t y) {
+  if (bobberState == BOBBER_CAUGHT && !bobberLegendCast &&
+      y >= BOBBER_BUTTON_Y && y < BOBBER_BUTTON_Y + BOBBER_BUTTON_H) {
+    if (x >= BOBBER_CATCH_BACK_X && x < BOBBER_CATCH_BACK_X + BOBBER_CATCH_BACK_W) return 6;
+    if (!bobberEconomyUnreadable && x >= BOBBER_RECAST_X && x < BOBBER_RECAST_X + BOBBER_RECAST_W) return 1;
+    return 0;
+  }
   if (bobberButtonContains(x, y)) {
     if ((bobberState == BOBBER_READY || bobberState == BOBBER_CAUGHT) && bobberEconomyUnreadable) return 0;
     return bobberState == BOBBER_FIGHT ? 50 : 1;
@@ -583,7 +595,13 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
                        canCast && bobberEconomyUnreadable ? "SAVE ERROR" :
                        canCast && bobberEconomyDirty ? "RETRY SAVE" :
                        canCast && bobberEconomy.count >= BOBBER_COOLER_CAPACITY ? "COOLER" : "CAST";
-  bobberPrimaryButton(canvas, button);
+  if (bobberState == BOBBER_CAUGHT && !bobberLegendCast) {
+    const char *recast = strcmp(button, "CAST") == 0 ? "CAST AGAIN" : button;
+    if (bobberEconomyUnreadable)
+      bobberShopButton(canvas, BOBBER_RECAST_X, BOBBER_BUTTON_Y, BOBBER_RECAST_W, recast, false, BOBBER_BUTTON_H);
+    else bobberPrimaryButton(canvas, recast, BOBBER_RECAST_X, BOBBER_RECAST_W, 2);
+    bobberShopButton(canvas, BOBBER_CATCH_BACK_X, BOBBER_BUTTON_Y, BOBBER_CATCH_BACK_W, "BACK", true, BOBBER_BUTTON_H);
+  } else bobberPrimaryButton(canvas, button);
   canvas->setTextSize(1);
   canvas->flush();
 }
@@ -628,9 +646,16 @@ static void updateBobberFishing(Arduino_Canvas *canvas, uint32_t now) {
     return;
   }
   if (bobberState == BOBBER_SHOP_INTRO) {
-    if (now - bobberShopIntroAt >= BOBBER_SHOP_INTRO_MS) {
+    const uint32_t elapsed = now - bobberShopIntroAt;
+    if (elapsed >= BOBBER_SHOP_INTRO_MS) {
       bobberState = BOBBER_SHOP;
       renderBobberWelcome(canvas);
+    } else {
+      const uint8_t pose = elapsed < 360 ? 0 : elapsed < 550 ? 1 : 2;
+      if (pose != bobberShopIntroFrame) {
+        bobberShopIntroFrame = pose;
+        renderBobberWelcome(canvas);
+      }
     }
     return;
   }
@@ -703,6 +728,7 @@ static void updateBobberTouch(Arduino_Canvas *canvas, bool pressed,
       else if (pressedTarget == 3) --bobberJournalPage;
       else if (pressedTarget == 4) ++bobberJournalPage;
       else if (pressedTarget == 5) bobberState = BOBBER_DOCK;
+      else if (pressedTarget == 6) bobberState = BOBBER_READY;
       else if (pressedTarget >= 10 && pressedTarget < 10 + BOBBER_REGION_COUNT) {
         const BobberRegion destination = (BobberRegion)(pressedTarget - 10);
         if (!bobberRegionUnlocked(destination)) { armed = false; wasDown = pressed; return; }

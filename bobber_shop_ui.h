@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bobber_shopkeeper_art.h"
+#include "bobber_fish_tales.h"
 
 static constexpr uint16_t BOBBER_CREAM = 0xF7B9;
 static constexpr uint16_t BOBBER_INK = 0x08E4;
@@ -26,22 +27,54 @@ static void bobberHeading(Arduino_Canvas *canvas, const char *text, int y) {
 }
 
 static void bobberShopButton(Arduino_Canvas *canvas, int x, int y, int width,
-                             const char *label, bool enabled = true) {
-  bobberPanel(canvas, x, y, width, 44, enabled ? 0x6573 : 0x39AB,
+                             const char *label, bool enabled = true, int height = 44) {
+  bobberPanel(canvas, x, y, width, height, enabled ? 0x6573 : 0x39AB,
               enabled ? 0x234D : 0x1927);
   canvas->setTextColor(enabled ? BOBBER_CREAM : BOBBER_MUTED_TEXT);
   canvas->setTextSize(2);
-  canvas->setCursor(x + (width - (int)strlen(label) * 12) / 2, y + 14);
+  canvas->setCursor(x + (width - (int)strlen(label) * 12) / 2, y + (height - 16) / 2);
   canvas->print(label);
   canvas->setTextColor(BOBBER_CREAM);
 }
 
-static void bobberPrimaryButton(Arduino_Canvas *canvas, const char *label) {
-  canvas->fillRoundRect(143, 376, 180, 48, 16, 0x7D62);
-  canvas->fillRoundRect(144, 376, 178, 45, 15, 0xBFE0);
-  const int size = strlen(label) > 7 ? 2 : 3;
+static void bobberPrimaryButton(Arduino_Canvas *canvas, const char *label,
+                                int x = 143, int width = 180, int size = 0) {
+  canvas->fillRoundRect(x, 376, width, 48, 16, 0x7D62);
+  canvas->fillRoundRect(x + 1, 376, width - 2, 45, 15, 0xBFE0);
+  if (!size) size = strlen(label) > 7 ? 2 : 3;
   canvas->setTextColor(BOBBER_INK);
-  bobberShopText(canvas, label, size == 3 ? 387 : 391, size);
+  canvas->setTextSize(size);
+  canvas->setCursor(x + (width - (int)strlen(label) * 6 * size) / 2, size == 3 ? 387 : 391);
+  canvas->print(label);
+}
+
+static void drawBobberShopCounters(Arduino_Canvas *canvas) {
+  if (bobberEconomyUnreadable) {
+    bobberPanel(canvas, 119, 97, 228, 33);
+    bobberShopText(canvas, "SAVE UNAVAILABLE", 105, 2);
+    return;
+  }
+  bobberPanel(canvas, 78, 97, 178, 33);
+  bobberPanel(canvas, 264, 97, 124, 33);
+  // Raised edge and slot on the coin. A fin and tail make the cooler icon readable.
+  canvas->fillCircle(99, 113, 10, 0x8AA4);
+  canvas->fillCircle(98, 112, 8, 0xE650);
+  canvas->drawFastVLine(98, 108, 9, 0xAF06);
+  canvas->fillTriangle(286, 113, 294, 107, 294, 119, 0x7D96);
+  canvas->fillRoundRect(272, 108, 18, 11, 5, 0xABD7);
+  canvas->fillRect(275, 111, 2, 2, BOBBER_INK);
+  canvas->fillTriangle(278, 109, 281, 104, 286, 110, 0x7D96);
+  char value[16];
+  canvas->setTextColor(BOBBER_CREAM);
+  snprintf(value, sizeof(value), "%lu", (unsigned long)bobberEconomy.coins);
+  const bool longBalance = strlen(value) > 7;
+  canvas->setTextSize(longBalance ? 2 : 3);
+  canvas->setCursor(114, longBalance ? 105 : 101);
+  canvas->print(value);
+  snprintf(value, sizeof(value), "%u/%u", bobberEconomy.count, BOBBER_COOLER_CAPACITY);
+  canvas->setTextSize(3);
+  canvas->setCursor(298, 101);
+  canvas->print(value);
 }
 
 enum BobberDockIcon { BOBBER_ICON_COOLER, BOBBER_ICON_SHOP, BOBBER_ICON_TRAVEL };
@@ -75,13 +108,16 @@ static int bobberShopTouchTarget(int16_t x, int16_t y) {
   if (bobberState == BOBBER_SHOP && x >= 95 && x < 371) {
     if (y >= 145 && y < 189 && bobberEconomy.count) return 33;
     if (y >= 213 && y < 257 && bobberSaleQuote(-1)) return 34;
-    if (y >= 281 && y < 325) return 40;
+    if (y >= 268 && y < 312) return 40;
+    if (y >= 323 && y < 367) return 46;
   }
   if (bobberState == BOBBER_SUPPLIES && x >= 95 && x < 371) {
     for (int row = 0; row < 3; ++row)
       if (y >= 134 + row * 68 && y < 178 + row * 68 && bobberCanBuySupply(bobberSupplyRows[row])) return 41 + row;
     if (y >= 330 && y < 374) return 44;
   }
+  if (bobberState == BOBBER_FISH_TALE && x >= 123 && x < 343 &&
+      y >= 304 && y < 348) return 46;
   if (bobberState == BOBBER_RECIPE && x >= 123 && x < 343 &&
       y >= 290 && y < 334 && bobberCanPrepareLegendBait()) return 45;
   if (bobberState == BOBBER_COOLER || bobberState == BOBBER_SELL_FISH) {
@@ -103,6 +139,7 @@ static bool handleBobberShopTouch(int target) {
     bobberState = bobberShopWelcomed ? BOBBER_SHOP : BOBBER_SHOP_INTRO;
     bobberShopWelcomed = true;
     bobberShopIntroAt = millis();
+    bobberShopIntroFrame = 0;
   }
   else if (target == 1 && bobberState == BOBBER_SHOP_INTRO) bobberState = BOBBER_SHOP;
   else if (target == 32) bobberState = BOBBER_TRAVEL;
@@ -116,6 +153,11 @@ static bool handleBobberShopTouch(int target) {
   else if (target == 35) bobberReserveFish(bobberCoolerPage);
   else if (target == 37) bobberState = bobberShopReturn;
   else if (target == 40) bobberState = BOBBER_SUPPLIES;
+  else if (target == 46) {
+    pickBobberFishTale();
+    bobberState = BOBBER_FISH_TALE;
+  }
+  else if (target == 1 && bobberState == BOBBER_FISH_TALE) bobberState = BOBBER_SHOP;
   else if (target >= 41 && target <= 43) {
     bobberBuySupply(bobberSupplyRows[target - 41]);
   }
@@ -148,8 +190,12 @@ static void renderBobberShopIntro(Arduino_Canvas *canvas) {
   constexpr int scale = 2;
   constexpr int x = (466 - scale * BOBBER_SHOPKEEPER_WIDTH) / 2;
   constexpr int y = 298 - scale * BOBBER_SHOPKEEPER_HEIGHT;
-  for (const auto &span : bobberShopkeeper)
+  auto drawSpan = [=](const BobberPortraitSpan &span) {
     canvas->fillRect(x + scale * span.x, y + scale * span.y, scale * span.width, scale, span.color);
+  };
+  for (const auto &span : bobberShopkeeperHead) drawSpan(span);
+  const auto &pose = bobberShopkeeperPoses[bobberShopIntroFrame];
+  for (size_t i = 0; i < pose.count; ++i) drawSpan(pose.spans[i]);
   bobberPanel(canvas, 83, 321, 300, 37, BOBBER_BRASS);
   canvas->setTextColor(BOBBER_CREAM);
   bobberShopText(canvas, "Fish stories are free.", 332, 2);
@@ -163,6 +209,18 @@ static bool renderBobberShop(Arduino_Canvas *canvas) {
     renderBobberShopIntro(canvas);
     return true;
   }
+  if (bobberState == BOBBER_FISH_TALE) {
+    const auto &tale = bobberFishTales[bobberFishTale];
+    bobberHeading(canvas, tale.fact ? "FISH FACT" : "FISH TALE", 58);
+    bobberPanel(canvas, 65, 127, 336, 153, BOBBER_BRASS);
+    for (int i = 0; i < 4 && tale.lines[i]; ++i)
+      bobberShopText(canvas, tale.lines[i], 153 + 26 * i, 2);
+    bobberShopButton(canvas, 123, 304, 220, "ANOTHER");
+    bobberPrimaryButton(canvas, "BACK");
+    canvas->setTextSize(1);
+    canvas->flush();
+    return true;
+  }
   if (bobberState != BOBBER_DOCK && bobberState != BOBBER_COOLER &&
       bobberState != BOBBER_SHOP && bobberState != BOBBER_SELL_FISH && bobberState != BOBBER_CONFIRM &&
       bobberState != BOBBER_SUPPLIES && bobberState != BOBBER_RECIPE) return false;
@@ -174,10 +232,9 @@ static bool renderBobberShop(Arduino_Canvas *canvas) {
                          bobberState == BOBBER_CONFIRM ? "ARE YOU SURE?" :
                          bobberState == BOBBER_COOLER ? "COOLER" : "SELL FISH", 58);
   char line[72];
-  if (bobberEconomyUnreadable) snprintf(line, sizeof(line), "Cooler save unreadable");
-  else snprintf(line, sizeof(line), "%lu coins | Cooler %u / 20", (unsigned long)bobberEconomy.coins, bobberEconomy.count);
-  bobberPanel(canvas, 119, 101, 228, 16);
-  bobberShopText(canvas, line, 105);
+  drawBobberShopCounters(canvas);
+  const char *notice = bobberEconomyUnreadable ? "Save preserved. Shop changes blocked." :
+                       bobberEconomyDirty ? "Catch not saved. Return to retry." : bobberEconomyNotice;
   if (bobberState == BOBBER_DOCK) {
     bobberShopButton(canvas, 95, 145, 276, "COOLER");
     bobberShopButton(canvas, 95, 213, 276, "SHOP");
@@ -188,13 +245,14 @@ static bool renderBobberShop(Arduino_Canvas *canvas) {
   } else if (bobberState == BOBBER_SHOP) {
     bobberShopButton(canvas, 95, 145, 276, "SELL FISH", bobberEconomy.count != 0);
     bobberShopButton(canvas, 95, 213, 276, "SELL ALL", bobberSaleQuote(-1) != 0);
-    bobberShopButton(canvas, 95, 281, 276, "SUPPLIES");
+    bobberShopButton(canvas, 95, 268, 276, "SUPPLIES");
+    bobberShopButton(canvas, 95, 323, 276, "FISH TALE");
   } else if (bobberState == BOBBER_SUPPLIES) {
     snprintf(line, sizeof(line), "SEARCH BAIT   %d", BOBBER_BAIT_PRICE);
     bobberShopButton(canvas, 95, 134, 276, line, bobberCanBuySupply(0));
     canvas->setTextColor(0xF7B9);
     snprintf(line, sizeof(line), "%u / %d | Helps find missing fish", bobberEconomy.bait, BOBBER_BAIT_LIMIT);
-    bobberShopText(canvas, line, 184);
+    bobberShopText(canvas, notice ? notice : line, 184);
     snprintf(line, sizeof(line), "STRONG LINE   %d", BOBBER_LINE_PRICE);
     bobberShopButton(canvas, 95, 202, 276, bobberEconomy.tackle & BOBBER_STRONG_LINE ? "LINE EQUIPPED" : line,
                      bobberCanBuySupply(BOBBER_STRONG_LINE));
@@ -207,8 +265,8 @@ static bool renderBobberShop(Arduino_Canvas *canvas) {
     bobberShopText(canvas, "Gains more ground while reeling", 316);
     bobberShopButton(canvas, 143, 330, 180, "LEGEND BAIT");
   } else if (bobberState == BOBBER_RECIPE) {
-    bobberPanel(canvas, 78, 121, 310, 155);
-    bobberShopText(canvas, bobberRegionNames[bobberRegion], 128);
+    bobberPanel(canvas, 78, 133, 310, 143);
+    bobberShopText(canvas, bobberRegionNames[bobberRegion], 139);
     bobberShopText(canvas, "Use any two of these fish", 156, 2);
     bobberShopText(canvas, bobberNames[bobberIngredients[bobberRegion][0]], 186, 2);
     bobberShopText(canvas, bobberNames[bobberIngredients[bobberRegion][1]], 209, 2);
@@ -219,7 +277,7 @@ static bool renderBobberShop(Arduino_Canvas *canvas) {
                            "Reserve ingredients to keep them when selling.", 260);
     bobberShopButton(canvas, 123, 290, 220, "PREPARE", bobberCanPrepareLegendBait());
   } else if (browsing) {
-    bobberPanel(canvas, 77, 119, 312, 153);
+    bobberPanel(canvas, 77, 133, 312, 139);
     if (bobberEconomyUnreadable) {
       bobberShopText(canvas, "Saved cooler unavailable.", 201, 2);
       bobberShopText(canvas, "Your saved data has been preserved.", 240);
@@ -229,8 +287,8 @@ static bool renderBobberShop(Arduino_Canvas *canvas) {
     } else {
       const auto &fish = bobberEconomy.fish[bobberCoolerPage];
       snprintf(line, sizeof(line), "%d / %u", bobberCoolerPage + 1, bobberEconomy.count);
-      bobberShopText(canvas, line, 124);
-      drawBobberTrophy(canvas, (BobberSpecies)fish.species, 165, true);
+      bobberShopText(canvas, line, 139);
+      drawBobberTrophy(canvas, (BobberSpecies)fish.species, 174, true);
       bobberShopText(canvas, bobberNames[fish.species], 205, 2);
       snprintf(line, sizeof(line), "%u lb %u oz | %lu coins", fish.ounces / 16, fish.ounces % 16,
                (unsigned long)bobberFishValue(fish));
@@ -257,9 +315,8 @@ static bool renderBobberShop(Arduino_Canvas *canvas) {
     bobberShopButton(canvas, 123, 304, 220, "CANCEL");
   }
   canvas->setTextColor(0xF7B9);
-  const char *notice = bobberEconomyUnreadable ? "Save preserved. Shop changes blocked." :
-                       bobberEconomyDirty ? "Catch not saved. Return to retry." : bobberEconomyNotice;
-  if (notice) bobberShopText(canvas, notice, bobberState == BOBBER_SUPPLIES ? 120 : 350);
+  if (notice && bobberState != BOBBER_SUPPLIES)
+    bobberShopText(canvas, notice, bobberState == BOBBER_SHOP ? 134 : 350);
   bobberPrimaryButton(canvas, bobberState == BOBBER_CONFIRM ? "CONFIRM" : "BACK");
   if (browsing) {
     bobberShopButton(canvas, 95, 376, 44, "<", bobberCoolerPage > 0);

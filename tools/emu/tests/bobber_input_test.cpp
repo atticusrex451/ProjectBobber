@@ -83,7 +83,8 @@ int main() {
   click(233, 400);
   fight();
   assert(bobberState == BOBBER_CAUGHT && bobberEconomy.count == 1);
-  click(233, 400); click(233, 400); // recast/cancel back to ready
+  click(319, 400); // Back from a catch returns to the dock/journal controls.
+  assert(bobberState == BOBBER_READY && bobberEconomy.count == 1);
   click(302, 326); // dock
   click(233, 166); // cooler
   assert(bobberState == BOBBER_COOLER);
@@ -91,9 +92,16 @@ int main() {
   assert(bobberEconomy.fish[0].reserved);
   click(233, 400); // dock
   click(233, 234); // shop
-  assert(bobberState == BOBBER_SHOP_INTRO);
+  assert(bobberState == BOBBER_SHOP_INTRO && bobberShopIntroFrame == 0);
+  const auto rest = gfx->fb;
+  tick(360);
+  assert(bobberShopIntroFrame == 1 && gfx->fb != rest);
+  const auto lifting = gfx->fb;
+  tick(190);
+  assert(bobberShopIntroFrame == 2 && gfx->fb != lifting);
+  assert(std::equal(rest.begin(), rest.begin() + 210 * 466, gfx->fb.begin()));
   sample(true, 233, 400);
-  tick(BOBBER_SHOP_INTRO_MS - 1);
+  tick(BOBBER_SHOP_INTRO_MS - 551);
   assert(bobberState == BOBBER_SHOP_INTRO);
   tick(1);
   sample(false, 233, 400);
@@ -110,6 +118,14 @@ int main() {
   click(233, 400); // dock
   click(233, 234);
   assert(bobberState == BOBBER_SHOP); // only once per session
+  const auto beforeTale = nvs();
+  click(233, 345);
+  assert(bobberState == BOBBER_FISH_TALE && bobberFishTale >= 0);
+  const int tale = bobberFishTale;
+  click(233, 326);
+  assert(bobberState == BOBBER_FISH_TALE && bobberFishTale != tale);
+  click(233, 400);
+  assert(bobberState == BOBBER_SHOP && nvs() == beforeTale);
   puts("Bobber firmware economy input: auto-keep, dock/cooler/shop, reservation and sale confirmation passed");
   puts("Bobber firmware input: PLAY, journal, paging, travel, cast/cancel and drag-off passed");
 
