@@ -56,6 +56,10 @@ int main() {
   assert(bobberState == BOBBER_TITLE); // PLAY works during the splash animation
   sample(false, 233, 400);
   assert(bobberState == BOBBER_READY);
+  click(233, 166);
+  assert(bobberState == BOBBER_MAIL && bobberOpenLetter == -1 && !bobberUnreadMail());
+  click(233, 400);
+  assert(bobberState == BOBBER_READY);
   click(161, 326);
   assert(bobberState == BOBBER_JOURNAL);
   click(349, 398);
@@ -83,8 +87,17 @@ int main() {
   click(233, 400);
   fight();
   assert(bobberState == BOBBER_CAUGHT && bobberEconomy.count == 1);
+  assert(bobberCatchMail && bobberUnreadMail() == 1);
   click(319, 400); // Back from a catch returns to the dock/journal controls.
   assert(bobberState == BOBBER_READY && bobberEconomy.count == 1);
+  nvsFailWritesAfter(0);
+  click(233, 166);
+  assert(bobberOpenLetter == BOBBER_MAIL_FIRST_CATCH && bobberUnreadMail() == 1);
+  nvsResumeWrites();
+  click(233, 400);
+  click(233, 166);
+  assert(bobberOpenLetter == BOBBER_MAIL_FIRST_CATCH && !bobberUnreadMail());
+  click(233, 400);
   click(302, 326); // dock
   click(233, 166); // cooler
   assert(bobberState == BOBBER_COOLER);
@@ -190,10 +203,13 @@ int main() {
     mainTap();
     mainTap();
   };
+  const BobberLetter legendLetters[] = {BOBBER_MAIL_BAY_LEGEND, BOBBER_MAIL_LAKE_LEGEND, BOBBER_MAIL_GROTTO_LEGEND};
   auto collect = [&](int recipeCount) {
     int attempts = 0;
     while (bobberDiscovered(bobberRegion) < 8 || bobberRecipeCount() < recipeCount) {
       assert(++attempts < 150);
+      if (bobberDiscovered(bobberRegion) < 8)
+        assert(!(bobberAvailableMail() & bobberMailBit(legendLetters[bobberRegion])));
       if (bobberEconomy.count == BOBBER_COOLER_CAPACITY) sellSurplus();
       mainTap();
       assert(bobberState == BOBBER_WAITING);
@@ -276,11 +292,24 @@ int main() {
     assert(bobberState == BOBBER_JOURNAL);
     mainTap();
     int casts = collect(region == BOBBER_BAY ? 4 : 2);
+    const auto letter = legendLetters[region];
+    assert(bobberAvailableMail() & bobberMailBit(letter));
+    click(233, 166);
+    assert(bobberState == BOBBER_MAIL && bobberOpenLetter == letter &&
+           (bobberMailRead & bobberMailBit(letter)));
+    if (region == BOBBER_BAY) {
+      click(117, 398);
+      assert(bobberOpenLetter == BOBBER_MAIL_FIRST_CATCH && !bobberUnreadMail());
+      click(349, 398);
+      assert(bobberOpenLetter == BOBBER_MAIL_BAY_LEGEND);
+    }
+    mainTap();
     prepare(region == BOBBER_BAY);
     if (region == BOBBER_BAY) {
       const auto savedFish = bobberEconomy.count;
       restart();
       assert(bobberHasLegendBait() && bobberEconomy.count == savedFish && bobberDiscovered(bobberRegion) == 8);
+      assert(!bobberUnreadMail());
       openLegend();
       click(233, 326);
       mainTap();
@@ -315,7 +344,11 @@ int main() {
            bobberEconomy.count == count && bobberSavedBests[bobberSpecies] == bobberCatchOz);
     mainTap();
     if (region < BOBBER_GROTTO) {
-      assert(bobberState == BOBBER_READY);
+      assert(bobberState == BOBBER_READY && bobberUnreadMail() == 1 && bobberCatchMail);
+      click(233, 166);
+      assert(bobberOpenLetter == (region == BOBBER_BAY ? BOBBER_MAIL_LAKE_TRAVEL : BOBBER_MAIL_GROTTO_TRAVEL));
+      assert(!bobberUnreadMail());
+      mainTap();
       sellSurplus();
       openSupplies();
       if (region == BOBBER_BAY) {
@@ -343,7 +376,7 @@ int main() {
     printf("Fresh save: %s completed after %d regular catches in this biome\n", bobberRegionNames[region], casts);
   }
   restart();
-  assert(bobberRegion == BOBBER_GROTTO);
+  assert(bobberRegion == BOBBER_GROTTO && !bobberUnreadMail());
   for (auto best : bobberBests) assert(best);
   openLegend();
   click(302, 326);

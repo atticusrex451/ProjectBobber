@@ -11,7 +11,7 @@
 
 enum BobberState { BOBBER_TITLE, BOBBER_JOURNAL, BOBBER_TRAVEL, BOBBER_DOCK, BOBBER_COOLER, BOBBER_SHOP, BOBBER_SELL_FISH, BOBBER_CONFIRM,
                    BOBBER_READY, BOBBER_WAITING, BOBBER_BITE, BOBBER_CAUGHT, BOBBER_SUPPLIES, BOBBER_RECIPE,
-                   BOBBER_FIGHT, BOBBER_LOST, BOBBER_ENDING, BOBBER_SHOP_INTRO, BOBBER_FISH_TALE };
+                   BOBBER_FIGHT, BOBBER_LOST, BOBBER_ENDING, BOBBER_SHOP_INTRO, BOBBER_FISH_TALE, BOBBER_MAIL };
 static BobberState bobberState = BOBBER_TITLE;
 static uint32_t bobberCastAt = 0;
 static uint32_t bobberAnimationAt = 0;
@@ -59,6 +59,7 @@ static bool bobberRegionUnlocked(BobberRegion region) {
 #include "bobber_progression.h"
 #include "bobber_fight.h"
 #include "bobber_landscape.h"
+#include "bobber_mail.h"
 
 static void loadBobberRecord() {
   loadBobberEconomy();
@@ -69,6 +70,9 @@ static void loadBobberRecord() {
   bobberTitleAt = millis();
   bobberTitleFrame = 0;
   bobberShopWelcomed = false;
+  bobberMailRead = 0;
+  bobberOpenLetter = -1;
+  bobberCatchMail = false;
   bobberRegion = bobberSavedRegion = BOBBER_BAY;
   bobberLegendCast = false;
   bobberFight = {};
@@ -86,6 +90,7 @@ static void loadBobberRecord() {
     if (saved >= bobberMinOz[i] && saved <= bobberMaxOz[i])
       bobberBests[i] = bobberSavedBests[i] = saved;
   }
+  bobberMailRead = prefs.getUChar("bobberMailRead", 0);
   const uint8_t savedRegion = prefs.getUChar("bobberRegion", BOBBER_BAY);
   if (savedRegion < BOBBER_REGION_COUNT && bobberRegionUnlocked((BobberRegion)savedRegion))
     bobberRegion = bobberSavedRegion = (BobberRegion)savedRegion;
@@ -150,6 +155,12 @@ static int bobberTouchTarget(int16_t x, int16_t y) {
   if (bobberState == BOBBER_JOURNAL && y >= 376 && y < 420) {
     if (x >= 95 && x < 139 && bobberJournalPage > 0) return 3;
     if (x >= 327 && x < 371 && bobberJournalPage + 1 < BOBBER_JOURNAL_PAGES) return 4;
+  }
+  if (bobberState == BOBBER_READY && x >= 160 && x < 306 && y >= 145 && y < 189) return 7;
+  if (bobberState == BOBBER_MAIL && y >= 376 && y < 420 && bobberOpenLetter >= 0) {
+    const uint8_t available = bobberAvailableMail();
+    if (x >= 95 && x < 139 && bobberAdjacentLetter(bobberOpenLetter, -1, available) >= 0) return 8;
+    if (x >= 327 && x < 371 && bobberAdjacentLetter(bobberOpenLetter, 1, available) >= 0) return 9;
   }
   if (bobberState == BOBBER_READY && y >= 304 && y < 348) {
     if (x >= 95 && x < 229) return 2;
@@ -324,6 +335,40 @@ static void drawBobberTitleFloat(Arduino_Canvas *canvas) {
   span(-9, 19, 2, 2, 0xFC8A);
 }
 
+static void renderBobberMail(Arduino_Canvas *canvas) {
+  bobberHeading(canvas, "MAIL", 57);
+  bobberPanel(canvas, 65, 114, 336, 238, BOBBER_BRASS);
+  bobberShopText(canvas, "From the bait shop", 132);
+  const uint8_t available = bobberAvailableMail();
+  if (bobberOpenLetter < 0) {
+    bobberShopText(canvas, "No letters yet", 205, 2);
+  } else {
+    const auto &letter = bobberLetters[bobberOpenLetter];
+    canvas->setTextColor(BOBBER_BRASS);
+    bobberShopText(canvas, letter.subject, 154, 2);
+    canvas->setTextColor(BOBBER_CREAM);
+    for (int i = 0; i < 7 && letter.lines[i]; ++i)
+      bobberShopText(canvas, letter.lines[i], 189 + i * 22, 2);
+    int page = 0, total = 0;
+    for (int i = 0; i < BOBBER_MAIL_COUNT; ++i) {
+      if (available & bobberMailBit(i)) {
+        ++total;
+        if (i <= bobberOpenLetter) ++page;
+      }
+    }
+    char position[28];
+    snprintf(position, sizeof(position), "%d / %d    %d unread", page, total, bobberUnreadMail());
+    bobberShopText(canvas, position, 331);
+  }
+  bobberPrimaryButton(canvas, "BACK");
+  bobberShopButton(canvas, 95, 376, 44, "<", bobberOpenLetter >= 0 &&
+                   bobberAdjacentLetter(bobberOpenLetter, -1, available) >= 0);
+  bobberShopButton(canvas, 327, 376, 44, ">", bobberOpenLetter >= 0 &&
+                   bobberAdjacentLetter(bobberOpenLetter, 1, available) >= 0);
+  canvas->setTextSize(1);
+  canvas->flush();
+}
+
 static void renderBobberWelcome(Arduino_Canvas *canvas) {
   const uint16_t cream = BOBBER_CREAM;
   const uint16_t lime = 0xBFE0;
@@ -340,6 +385,10 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
   else blitBobberLandscape(canvas, bobberRegion, 0, 0, 233, 233, true);
   canvas->setTextColor(cream);
   if (renderBobberShop(canvas)) return;
+  if (bobberState == BOBBER_MAIL) {
+    renderBobberMail(canvas);
+    return;
+  }
   if (bobberState == BOBBER_ENDING || bobberState == BOBBER_LOST || bobberState == BOBBER_FIGHT) {
     if (bobberState == BOBBER_ENDING) {
       bobberHeading(canvas, "THE END", 78);
@@ -553,11 +602,12 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
       canvas->print("Record not saved; try again");
     } else {
       const char *notice = nullptr;
-      if (bobberSpecies == BOBBER_OLD_MAN) notice = "Blue Mountain Lake unlocked!";
-      else if (bobberSpecies == BOBBER_LEVIATHAN) notice = "Thurl's Grotto unlocked!";
+      if (bobberSpecies == BOBBER_OLD_MAN)
+        notice = bobberCatchMail ? "Lake unlocked. Check your mail!" : "Blue Mountain Lake unlocked!";
+      else if (bobberSpecies == BOBBER_LEVIATHAN)
+        notice = bobberCatchMail ? "Grotto unlocked. Check your mail!" : "Thurl's Grotto unlocked!";
       else if (bobberSpecies == BOBBER_IRON_MAW) notice = "Thurl's legend is yours.";
-      else if (bobberLegendAvailable(bobberRegion) && !bobberBests[bobberLegends[bobberRegion]])
-        notice = "All eight found! Seek the legend.";
+      else if (bobberCatchMail) notice = "New mail from the bait shop!";
       if (notice) {
         canvas->setCursor(233 - strlen(notice) * 3, 301);
         canvas->print(notice);
@@ -569,6 +619,11 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
     canvas->setCursor(125, 340);
     canvas->print("A lot of relaxing.");
   } else {
+    const int unread = bobberUnreadMail();
+    char mailLabel[16];
+    if (unread) snprintf(mailLabel, sizeof(mailLabel), "MAIL (%d)", unread);
+    else snprintf(mailLabel, sizeof(mailLabel), "MAIL");
+    bobberShopButton(canvas, 160, 145, 146, mailLabel);
     bobberShopButton(canvas, 95, 304, 134, "JOURNAL");
     bobberShopButton(canvas, 237, 304, 134, "DOCK");
     char record[64];
@@ -607,10 +662,12 @@ static void renderBobberWelcome(Arduino_Canvas *canvas) {
 }
 
 static void bobberLandFish() {
+  const uint8_t previousMail = bobberAvailableMail();
   if (bobberSessionCatches < UINT32_MAX) ++bobberSessionCatches;
   bobberCatchOz = (uint16_t)random(bobberMinOz[bobberSpecies], bobberMaxOz[bobberSpecies] + 1);
   bobberNewBest = bobberCatchOz > bobberBests[bobberSpecies];
   if (bobberNewBest) bobberBests[bobberSpecies] = bobberCatchOz;
+  bobberCatchMail = bobberAvailableMail() != previousMail;
   saveBobberRecord();
   bobberStoreCatch(bobberSpecies, bobberCatchOz);
   bobberState = BOBBER_CAUGHT;
@@ -729,6 +786,13 @@ static void updateBobberTouch(Arduino_Canvas *canvas, bool pressed,
       else if (pressedTarget == 4) ++bobberJournalPage;
       else if (pressedTarget == 5) bobberState = BOBBER_DOCK;
       else if (pressedTarget == 6) bobberState = BOBBER_READY;
+      else if (pressedTarget == 7) {
+        bobberOpenInbox();
+        bobberState = BOBBER_MAIL;
+      }
+      else if (pressedTarget == 8 || pressedTarget == 9)
+        bobberReadLetter(bobberAdjacentLetter(bobberOpenLetter, pressedTarget == 8 ? -1 : 1,
+                                            bobberAvailableMail()));
       else if (pressedTarget >= 10 && pressedTarget < 10 + BOBBER_REGION_COUNT) {
         const BobberRegion destination = (BobberRegion)(pressedTarget - 10);
         if (!bobberRegionUnlocked(destination)) { armed = false; wasDown = pressed; return; }
@@ -759,7 +823,8 @@ static void updateBobberTouch(Arduino_Canvas *canvas, bool pressed,
         bobberJournalPage = 0;
         bobberState = BOBBER_JOURNAL;
       }
-      else if (bobberState == BOBBER_JOURNAL || bobberState == BOBBER_TRAVEL) bobberState = BOBBER_READY;
+      else if (bobberState == BOBBER_JOURNAL || bobberState == BOBBER_TRAVEL ||
+               bobberState == BOBBER_MAIL) bobberState = BOBBER_READY;
       else if (bobberState == BOBBER_TITLE) bobberState = BOBBER_READY;
       else if (bobberState == BOBBER_ENDING || bobberState == BOBBER_LOST) {
         bobberLegendCast = false;

@@ -88,6 +88,15 @@ Fact references: [NOAA Fisheries summer flounder](https://www.fisheries.noaa.gov
 [Wisconsin DNR sturgeon scutes](https://dnr.wisconsin.gov/topic/Fishing/sturgeon/LakeSturgeon.html),
 and [NC Wildlife pumpkinseed](https://www.ncwildlife.gov/species/pumpkinseed).
 
+## Mail and progress tips
+
+MAIL on the fishing screen shows unread letters from the bait shop. The first
+catch, finishing each local roster, and unlocking each new spot make letters
+available. Existing bests and unlocks determine eligibility, so older saves
+receive letters for milestones already reached. The single byte `bobberMailRead`
+stores read receipts in the Bobber namespace. The legend recipe screen
+points players to the fifth Journal page once bait is ready.
+
 ## Current milestone
 
 The full story loop is playable. From READY, open DOCK → SHOP → SUPPLIES for

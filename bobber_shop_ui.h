@@ -273,7 +273,7 @@ static bool renderBobberShop(Arduino_Canvas *canvas) {
     snprintf(line, sizeof(line), "%d eligible in cooler | Reserved used first", bobberRecipeCount());
     bobberShopText(canvas, line, 237);
     bobberShopText(canvas, !bobberLegendAvailable(bobberRegion) ? "Discover all eight local fish first." :
-                           bobberHasLegendBait() ? "Bait ready. Seek the legend in your journal." :
+                           bobberHasLegendBait() ? "Bait ready: Journal > page 5 > Seek Legend." :
                            "Reserve ingredients to keep them when selling.", 260);
     bobberShopButton(canvas, 123, 290, 220, "PREPARE", bobberCanPrepareLegendBait());
   } else if (browsing) {
